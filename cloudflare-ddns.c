@@ -68,7 +68,7 @@ static size_t write_callback(char *contents, size_t size, size_t nmemb, void *us
 }
 
 // Log message to syslog
-void log_message(int priority, const char *message) {
+static void log_message(int priority, const char *message) {
     openlog("DDNS Updater", LOG_PID | LOG_CONS, LOG_USER);
     syslog(priority, "%s", message);
     closelog();
@@ -79,7 +79,7 @@ void log_message(int priority, const char *message) {
 }
 
 // Validate IPv4 address using regex
-int is_valid_ipv4(const char *ip) {
+static int is_valid_ipv4(const char *ip) {
     regex_t regex;
     int result;
     
@@ -94,7 +94,7 @@ int is_valid_ipv4(const char *ip) {
 }
 
 // Fetch current public IP address
-int get_current_ip(char *ip_buffer, size_t buffer_size) {
+static int get_current_ip(char *ip_buffer, size_t buffer_size) {
     CURL *curl;
     CURLcode res;
     struct response_data response = {0};
@@ -152,7 +152,7 @@ int get_current_ip(char *ip_buffer, size_t buffer_size) {
 }
 
 // Extract content from JSON response using simple string parsing
-char* extract_json_value(const char *json, const char *key) {
+static char* extract_json_value(const char *json, const char *key) {
     char search_pattern[HALF_BUFF];
     snprintf(search_pattern, sizeof(search_pattern), "\"%s\":\"", key);
     
@@ -174,7 +174,7 @@ char* extract_json_value(const char *json, const char *key) {
 }
 
 // Get DNS record information from Cloudflare
-int get_dns_record(const char *current_ip, char *old_ip, char *record_id) {
+static int get_dns_record(const char *current_ip, char *old_ip, char *record_id) {
     CURL *curl;
     CURLcode res;
     struct response_data response = {0};
@@ -246,7 +246,7 @@ int get_dns_record(const char *current_ip, char *old_ip, char *record_id) {
 }
 
 // Update DNS record at Cloudflare
-int update_dns_record(const char *current_ip, const char *record_id) {
+static int update_dns_record(const char *current_ip, const char *record_id) {
     CURL *curl;
     CURLcode res;
     struct response_data response = {0};
