@@ -31,6 +31,9 @@
 #define MAX_IP_SIZE 16
 #define MAX_RECORD_ID_SIZE 64
 #define IPV4_REGEX "^(0*(1?[0-9]{1,2}|2([0-4][0-9]|5[0-5]))\\.){3}0*(1?[0-9]{1,2}|2([0-4][0-9]|5[0-5]))$"
+#define HALF_BUFF 128
+#define BUFF 256
+#define DOUBLE_BUFF 512
 
 // IP services to try that if curl respond with your ip adress 
 static const char* ip_services[] = {
@@ -47,10 +50,11 @@ struct response_data {
 };
 
 // Callback function for libcurl to write response data
-static size_t write_callback(void *contents, size_t size, size_t nmemb, struct response_data *response) {
+static size_t write_callback(char *contents, size_t size, size_t nmemb, void *userdata) {
     size_t realsize = size * nmemb;
-    char *ptr = realloc(response->data, response->size + realsize + 1);
+    struct response_data *response = (struct response_data *)userdata;
     
+    char *ptr = realloc(response->data, response->size + realsize + 1);
     if (!ptr) {
         printf("Not enough memory (realloc returned NULL)\n");
         return 0;
@@ -60,7 +64,6 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb, struct r
     memcpy(&(response->data[response->size]), contents, realsize);
     response->size += realsize;
     response->data[response->size] = 0;
-    
     return realsize;
 }
 
@@ -128,7 +131,7 @@ int get_current_ip(char *ip_buffer, size_t buffer_size) {
                 strncpy(ip_buffer, response.data, buffer_size - 1);
                 ip_buffer[buffer_size - 1] = '\0';
                 
-                char log_msg[256];
+                char log_msg[BUFF];
                 snprintf(log_msg, sizeof(log_msg), "Fetched IP %s", ip_buffer);
                 log_message(LOG_INFO, log_msg);
                 
@@ -138,7 +141,7 @@ int get_current_ip(char *ip_buffer, size_t buffer_size) {
             }
         }
         
-        char log_msg[256];
+        char log_msg[BUFF];
         snprintf(log_msg, sizeof(log_msg), "IP service %s failed.", ip_services[i]);
         log_message(LOG_WARNING, log_msg);
     }
@@ -150,7 +153,7 @@ int get_current_ip(char *ip_buffer, size_t buffer_size) {
 
 // Extract content from JSON response using simple string parsing
 char* extract_json_value(const char *json, const char *key) {
-    char search_pattern[128];
+    char search_pattern[HALF_BUFF];
     snprintf(search_pattern, sizeof(search_pattern), "\"%s\":\"", key);
     
     char *start = strstr(json, search_pattern);
@@ -176,9 +179,9 @@ int get_dns_record(const char *current_ip, char *old_ip, char *record_id) {
     CURLcode res;
     struct response_data response = {0};
     struct curl_slist *headers = NULL;
-    char url[512];
-    char auth_header[256];
-    char email_header[256];
+    char url[DOUBLE_BUFF];
+    char auth_header[BUFF];
+    char email_header[BUFF];
     int result = -1;
     
     curl = curl_easy_init();
@@ -248,10 +251,10 @@ int update_dns_record(const char *current_ip, const char *record_id) {
     CURLcode res;
     struct response_data response = {0};
     struct curl_slist *headers = NULL;
-    char url[512];
-    char auth_header[256];
-    char email_header[256];
-    char json_data[512];
+    char url[DOUBLE_BUFF];
+    char auth_header[BUFF];
+    char email_header[BUFF];
+    char json_data[DOUBLE_BUFF];
     int result = -1;
     
     curl = curl_easy_init();
@@ -315,7 +318,8 @@ int main(int argc, char *argv[]) {
     char current_ip[MAX_IP_SIZE];
     char old_ip[MAX_IP_SIZE];
     char record_id[MAX_RECORD_ID_SIZE];
-    char notification_msg[512];
+    char notification_msg[BUFF];
+    int return_value = 0; 
     
     // Initialize curl globally
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -324,32 +328,38 @@ int main(int argc, char *argv[]) {
     if (get_current_ip(current_ip, sizeof(current_ip)) != 0) {
         log_message(LOG_ERR, "Failed to find a valid IP.");
         curl_global_cleanup();
-        return 2;
+        
+        return_value = 2;
+        return return_value;
     }
     
     // Get DNS record information
     int record_result = get_dns_record(current_ip, old_ip, record_id);
     if (record_result == 1) {
         curl_global_cleanup();
-        return 1;
+
+        return_value = 1;
+        return return_value;
     } else if (record_result != 0) {
         log_message(LOG_ERR, "Failed to get DNS record information.");
         curl_global_cleanup();
-        return 1;
+
+        return_value = 1;
+        return return_value;
     }
     
     // Compare IPs
     if (strcmp(current_ip, old_ip) == 0) {
-        char log_msg[256];
+        char log_msg[BUFF];
         snprintf(log_msg, sizeof(log_msg), "IP (%s) for %s has not changed.", current_ip, RECORD_NAME);
         log_message(LOG_INFO, log_msg);
         curl_global_cleanup();
-        return 0;
+        
+        return return_value;
     }
     
     // Update DNS record
     int update_result = update_dns_record(current_ip, record_id);
-    int return_value = 0; 
 
     if (update_result != 0) {
         return_value = 1;
