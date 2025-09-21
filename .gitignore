@@ -1,0 +1,74 @@
+# Gradle build files
+.gradle/
+build/
+target/
+
+# IntelliJ IDEA/Android Studio files
+.idea/
+*.iml
+
+# VsCode
+.vscode/*
+
+# Gradle-related cache files
+.gradle/*
+
+# Build and test reports
+build/reports/
+build/test-results/
+build/test-results/test/binary/output.bin.idx
+build/test-results/test/binary/output.bin
+
+# Ignore temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*~.nib
+*.bin
+
+# Maven Wrapper files
+.mvn/wrapper/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Eclipse-specific files
+.metadata/
+*.class
+bin/
+tmp/
+.settings/
+.project
+.classpath
+
+# STS (Spring Tool Suite)
+.sts4-cache/
+.springBeans
+.apt_generated
+
+# Java-specific files
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+
+# OS-specific files
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Logs and dumps
+*.stackdump
+
+# IDE-specific launch configurations
+*.launch
+
+# Generated files
+out/
+dist/
+node_modules/
