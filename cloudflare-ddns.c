@@ -13,7 +13,7 @@
 #define MAX_RECORD_ID_SIZE 64
 #define IPV4_REGEX "^(0*(1?[0-9]{1,2}|2([0-4][0-9]|5[0-5]))\\.){3}0*(1?[0-9]{1,2}|2([0-4][0-9]|5[0-5]))$"
 
-// IP services to try
+// IP services to try that if curl respond with your ip adress 
 static const char* ip_services[] = {
     "https://api.ipify.org",
     "https://ipv4.icanhazip.com", 
@@ -292,68 +292,6 @@ int update_dns_record(const char *current_ip, const char *record_id) {
     return result;
 }
 
-// Send notification to Slack
-void send_slack_notification(const char *message) {
-    if (strlen(SLACK_URI) == 0) return;
-    
-    CURL *curl;
-    CURLcode res;
-    struct curl_slist *headers = NULL;
-    char json_data[1024];
-    
-    curl = curl_easy_init();
-    if (!curl) return;
-    
-    snprintf(json_data, sizeof(json_data),
-        "{"
-        "\"channel\": \"%s\","
-        "\"text\" : \"%s\""
-        "}",
-        SLACK_CHANNEL, message);
-    
-    headers = curl_slist_append(headers, "Content-Type: application/json");
-    
-    curl_easy_setopt(curl, CURLOPT_URL, SLACK_URI);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    
-    res = curl_easy_perform(curl);
-    
-    curl_slist_free_all(headers);
-    curl_easy_cleanup(curl);
-}
-
-// Send notification to Discord
-void send_discord_notification(const char *message) {
-    if (strlen(DISCORD_URI) == 0) return;
-    
-    CURL *curl;
-    CURLcode res;
-    struct curl_slist *headers = NULL;
-    char json_data[1024];
-    
-    curl = curl_easy_init();
-    if (!curl) return;
-    
-    snprintf(json_data, sizeof(json_data),
-        "{"
-        "\"content\" : \"%s\""
-        "}",
-        message);
-    
-    headers = curl_slist_append(headers, "Accept: application/json");
-    headers = curl_slist_append(headers, "Content-Type: application/json");
-    
-    curl_easy_setopt(curl, CURLOPT_URL, DISCORD_URI);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data);
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    
-    res = curl_easy_perform(curl);
-    
-    curl_slist_free_all(headers);
-    curl_easy_cleanup(curl);
-}
-
 int main(int argc, char *argv[]) {
     char current_ip[MAX_IP_SIZE];
     char old_ip[MAX_IP_SIZE];
@@ -392,22 +330,13 @@ int main(int argc, char *argv[]) {
     
     // Update DNS record
     int update_result = update_dns_record(current_ip, record_id);
-    
-    if (update_result == 0) {
-        // Success notification
-        snprintf(notification_msg, sizeof(notification_msg),
-            "%s Updated: %s's new IP Address is %s", SITE_NAME, RECORD_NAME, current_ip);
-        send_slack_notification(notification_msg);
-        send_discord_notification(notification_msg);
-        curl_global_cleanup();
-        return 0;
-    } else {
-        // Failure notification
-        snprintf(notification_msg, sizeof(notification_msg),
-            "%s DDNS Update Failed: %s: %s (%s).", SITE_NAME, RECORD_NAME, record_id, current_ip);
-        send_slack_notification(notification_msg);
-        send_discord_notification(notification_msg);
-        curl_global_cleanup();
-        return 1;
+    int return_value = 0; 
+
+    if (update_result != 0) {
+        return_value = 1;
     }
+
+    curl_global_cleanup();
+
+    return return_value;
 }
