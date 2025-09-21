@@ -24,11 +24,12 @@
 #define AUTH_METHOD "token"  // "global" for Global API Key or "token" for Scoped API Token
 #define AUTH_KEY ""
 #define ZONE_IDENTIFIER ""
-#define RECORD_NAME ""
+#define RECORD_NAME_IPV4 ""
+#define RECORD_NAME_IPV6 ""
 #define TTL 3600
 #define PROXY "false"
 #define SITE_NAME ""
 #define ENABLE_IPV4 1
-#define ENABLE_IPV6 0 
+#define ENABLE_IPV6 1 
 
 #endif

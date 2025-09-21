@@ -31,19 +31,22 @@
 #define MAX_IP_SIZE_V4 16
 #define MAX_IP_SIZE_V6 40
 #define MAX_RECORD_ID_SIZE 64
-#define HALF_BUFF 128
-#define BUFF 256
-#define DOUBLE_BUFF 512
+#define H_BFF 128
+#define BFF 256
+#define D_BFF 512
+
+#define IPV4_RECORD "A"
+#define IPV6_RECORD "AAAA"
 
 // IP services to try for IPv4
-static const char* const ip_services_v4[] = {
+static const char *const ip_services_v4[] = {
     "https://api.ipify.org",
     "https://ipv4.icanhazip.com",
     NULL
 };
 
 // IP services to try for IPv6
-static const char* const ip_services_v6[] = {
+static const char *const ip_services_v6[] = {
     "https://api6.ipify.org",
     "https://ipv6.icanhazip.com",
     NULL
@@ -66,6 +69,15 @@ static char* extract_json_value(const char *json, const char *key);
 static struct curl_slist* prepare_headers();
 static int get_dns_record(char *old_ip, char *record_id, const char *record_name, const char *record_type);
 static int update_dns_record(const char *current_ip, const char *record_id, const char *record_name, const char *record_type);
+static int update_ip_record(
+    const char *record_name,
+    const char *record_type,
+    char *current_ip,
+    size_t ip_size,
+    char *old_ip,
+    char *record_id,
+    const char *const ip_services[],
+    int ip_version);
 
 // --- Function Implementations ---
 
@@ -157,7 +169,7 @@ static int get_current_ip(char *ip_buffer, size_t buffer_size, const char* const
                 strncpy(ip_buffer, response.data, buffer_size - 1);
                 ip_buffer[buffer_size - 1] = '\0';
 
-                char log_msg[BUFF];
+                char log_msg[BFF];
                 snprintf(log_msg, sizeof(log_msg), "Fetched IP (%s) %s", (ip_type == 4) ? "v4" : "v6", ip_buffer);
                 log_message(LOG_INFO, log_msg);
                 ret_val = 0;
@@ -165,7 +177,7 @@ static int get_current_ip(char *ip_buffer, size_t buffer_size, const char* const
             }
         }
 
-        char log_msg[BUFF];
+        char log_msg[BFF];
         snprintf(log_msg, sizeof(log_msg), "IP service %s failed.", ip_services[i]);
         log_message(LOG_WARNING, log_msg);
     }
@@ -178,7 +190,7 @@ cleanup:
 
 // Extract content from JSON response
 static char* extract_json_value(const char *json, const char *key) {
-    char search_pattern[HALF_BUFF];
+    char search_pattern[H_BFF];
     snprintf(search_pattern, sizeof(search_pattern), "\"%s\":\"([^\"]+)\"", key);
 
     regex_t regex;
@@ -206,8 +218,8 @@ static char* extract_json_value(const char *json, const char *key) {
 // Prepare common Cloudflare API headers
 static struct curl_slist* prepare_headers() {
     struct curl_slist *headers = NULL;
-    char auth_header[BUFF];
-    char email_header[BUFF];
+    char auth_header[BFF];
+    char email_header[BFF];
 
     snprintf(email_header, sizeof(email_header), "X-Auth-Email: %s", AUTH_EMAIL);
 
@@ -229,7 +241,7 @@ static int get_dns_record(char *old_ip, char *record_id, const char *record_name
     CURL *curl = NULL;
     struct response_data response = { .data = NULL, .size = 0 };
     struct curl_slist *headers = NULL;
-    char url[DOUBLE_BUFF];
+    char url[D_BFF];
     int ret_val = EXIT_FAILURE;
 
     curl = curl_easy_init();
@@ -252,7 +264,7 @@ static int get_dns_record(char *old_ip, char *record_id, const char *record_name
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
-    char log_msg[BUFF];
+    char log_msg[BFF];
     snprintf(log_msg, sizeof(log_msg), "Checking DNS record for %s (%s)", record_name, record_type);
     log_message(LOG_INFO, log_msg);
 
@@ -294,8 +306,8 @@ static int update_dns_record(const char *current_ip, const char *record_id, cons
     CURL *curl = NULL;
     struct response_data response = { .data = NULL, .size = 0 };
     struct curl_slist *headers = NULL;
-    char url[DOUBLE_BUFF];
-    char json_data[DOUBLE_BUFF];
+    char url[D_BFF];
+    char json_data[D_BFF];
     int ret_val = EXIT_FAILURE;
 
     curl = curl_easy_init();
@@ -332,7 +344,7 @@ static int update_dns_record(const char *current_ip, const char *record_id, cons
             log_message(LOG_ERR, response.data);
             ret_val = EXIT_FAILURE;
         } else {
-            char log_msg[BUFF];
+            char log_msg[BFF];
             snprintf(log_msg, sizeof(log_msg), "DDNS updated successfully for %s to IP %s.", record_name, current_ip);
             log_message(LOG_INFO, log_msg);
             ret_val = EXIT_SUCCESS;
@@ -348,6 +360,48 @@ cleanup:
     return ret_val;
 }
 
+static int update_ip_record(
+    const char *record_name,
+    const char *record_type,
+    char *current_ip,
+    size_t ip_size,
+    char *old_ip,
+    char *record_id,
+    const char *const ip_services[],
+    int ip_version)
+{
+    log_message(LOG_INFO, ip_version == 4 ? "Starting IPv4 update process." : "Starting IPv6 update process.");
+
+    if (get_current_ip(current_ip, ip_size, ip_services, ip_version) != 0)
+    {
+        log_message(ip_version == 4 ? LOG_ERR : LOG_WARNING,
+                    ip_version == 4 ? "Failed to get current IPv4 address." : "Failed to get current IPv6 address.");
+        return EXIT_FAILURE;
+    }
+
+    if (get_dns_record(old_ip, record_id, record_name, record_type) != EXIT_SUCCESS)
+    {
+        return EXIT_FAILURE;
+    }
+
+    if (strcmp(current_ip, old_ip) != 0)
+    {
+        if (update_dns_record(current_ip, record_id, record_name, record_type) != EXIT_SUCCESS)
+        {
+            return EXIT_FAILURE;
+        }
+    }
+    else
+    {
+        char log_msg[BFF];
+        snprintf(log_msg, sizeof(log_msg), "%s (%s) for %s has not changed. No update needed.",
+                 ip_version == 4 ? "IPv4" : "IPv6", current_ip, record_name);
+        log_message(LOG_INFO, log_msg);
+    }
+
+    return EXIT_SUCCESS;
+}
+
 int main(int argc, char *argv[]) {
     int status = EXIT_SUCCESS;
 
@@ -355,83 +409,30 @@ int main(int argc, char *argv[]) {
     openlog("DDNS Updater", LOG_PID | LOG_CONS, LOG_USER);
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
-
 #if ENABLE_IPV4
-
+{
     char current_ip_v4[MAX_IP_SIZE_V4];
     char old_ip_v4[MAX_IP_SIZE_V4];
     char record_id_v4[MAX_RECORD_ID_SIZE];
 
-    // --- IPv4 Update Process ---
-    log_message(LOG_INFO, "Starting IPv4 update process.");
-    if (get_current_ip(current_ip_v4, sizeof(current_ip_v4), ip_services_v4, 4) == 0)
-    {
-        if (get_dns_record(old_ip_v4, record_id_v4, RECORD_NAME, "A") == EXIT_SUCCESS)
-        {
-            if (strcmp(current_ip_v4, old_ip_v4) != 0)
-            {
-                if (update_dns_record(current_ip_v4, record_id_v4, RECORD_NAME, "A") != EXIT_SUCCESS)
-                {
-                    status = EXIT_FAILURE;
-                }
-            }
-            else
-            {
-                char log_msg[BUFF];
-                snprintf(log_msg, sizeof(log_msg), "IPv4 (%s) for %s has not changed. No update needed.", current_ip_v4, RECORD_NAME);
-                log_message(LOG_INFO, log_msg);
-            }
-        }
-        else
-        {
-            status = EXIT_FAILURE;
-        }
-    }
-    else
-    {
-        log_message(LOG_ERR, "Failed to get current IPv4 address.");
+    if (update_ip_record(RECORD_NAME_IPV4, IPV4_RECORD, current_ip_v4, sizeof(current_ip_v4),
+                         old_ip_v4, record_id_v4, ip_services_v4, 4) != EXIT_SUCCESS) {
         status = EXIT_FAILURE;
     }
-
+}
 #endif
 
 #if ENABLE_IPV6
-
+{
     char current_ip_v6[MAX_IP_SIZE_V6];
     char old_ip_v6[MAX_IP_SIZE_V6];
     char record_id_v6[MAX_RECORD_ID_SIZE];
 
-    // --- IPv6 Update Process
-    log_message(LOG_INFO, "Starting IPv6 update process.");
-    if (get_current_ip(current_ip_v6, sizeof(current_ip_v6), ip_services_v6, 6) == 0)
-    {
-        if (get_dns_record(old_ip_v6, record_id_v6, RECORD_NAME_V6, "AAAA") == EXIT_SUCCESS)
-        {
-            if (strcmp(current_ip_v6, old_ip_v6) != 0)
-            {
-                if (update_dns_record(current_ip_v6, record_id_v6, RECORD_NAME_V6, "AAAA") != EXIT_SUCCESS)
-                {
-                    status = EXIT_FAILURE;
-                }
-            }
-            else
-            {
-                char log_msg[BUFF];
-                snprintf(log_msg, sizeof(log_msg), "IPv6 (%s) for %s has not changed. No update needed.", current_ip_v6, RECORD_NAME_V6);
-                log_message(LOG_INFO, log_msg);
-            }
-        }
-        else
-        {
-            status = EXIT_FAILURE;
-        }
-    }
-    else
-    {
-        log_message(LOG_WARNING, "Failed to get current IPv6 address.");
+    if (update_ip_record(RECORD_NAME_IPV6, IPV4_RECORD, current_ip_v6, sizeof(current_ip_v6),
+                         old_ip_v6, record_id_v6, ip_services_v6, 6) != EXIT_SUCCESS) {
         status = EXIT_FAILURE;
     }
-
+}
 #endif
 
     curl_global_cleanup();
