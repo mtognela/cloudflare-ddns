@@ -31,7 +31,6 @@
 #define MAX_IP_SIZE_V4 16
 #define MAX_IP_SIZE_V6 40
 #define MAX_RECORD_ID_SIZE 64
-#define IPV4_REGEX "^(0*(1?[0-9]{1,2}|2([0-4][0-9]|5[0-5]))\\.){3}0*(1?[0-9]{1,2}|2([0-4][0-9]|5[0-5]))$"
 #define HALF_BUFF 128
 #define BUFF 256
 #define DOUBLE_BUFF 512
@@ -57,6 +56,7 @@ struct response_data {
 };
 
 // --- Function Prototypes ---
+
 static size_t write_callback(char *contents, size_t size, size_t nmemb, void *userdata);
 static void log_message(int priority, const char *message);
 static int is_valid_ipv4(const char *ip);
@@ -349,14 +349,6 @@ cleanup:
 }
 
 int main(int argc, char *argv[]) {
-    char current_ip_v4[MAX_IP_SIZE_V4];
-    char old_ip_v4[MAX_IP_SIZE_V4];
-    char record_id_v4[MAX_RECORD_ID_SIZE];
-
-    char current_ip_v6[MAX_IP_SIZE_V6];
-    char old_ip_v6[MAX_IP_SIZE_V6];
-    char record_id_v6[MAX_RECORD_ID_SIZE];
-
     int status = EXIT_SUCCESS;
 
     // Initialize syslog and curl once
@@ -365,6 +357,11 @@ int main(int argc, char *argv[]) {
 
 
 #if ENABLE_IPV4
+
+    char current_ip_v4[MAX_IP_SIZE_V4];
+    char old_ip_v4[MAX_IP_SIZE_V4];
+    char record_id_v4[MAX_RECORD_ID_SIZE];
+
     // --- IPv4 Update Process ---
     log_message(LOG_INFO, "Starting IPv4 update process.");
     if (get_current_ip(current_ip_v4, sizeof(current_ip_v4), ip_services_v4, 4) == 0)
@@ -395,9 +392,14 @@ int main(int argc, char *argv[]) {
         log_message(LOG_ERR, "Failed to get current IPv4 address.");
         status = EXIT_FAILURE;
     }
+
 #endif
 
 #if ENABLE_IPV6
+
+    char current_ip_v6[MAX_IP_SIZE_V6];
+    char old_ip_v6[MAX_IP_SIZE_V6];
+    char record_id_v6[MAX_RECORD_ID_SIZE];
 
     // --- IPv6 Update Process
     log_message(LOG_INFO, "Starting IPv6 update process.");
@@ -429,6 +431,7 @@ int main(int argc, char *argv[]) {
         log_message(LOG_WARNING, "Failed to get current IPv6 address.");
         status = EXIT_FAILURE;
     }
+
 #endif
 
     curl_global_cleanup();

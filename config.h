@@ -28,5 +28,7 @@
 #define TTL 3600
 #define PROXY "false"
 #define SITE_NAME ""
+#define ENABLE_IPV4 1
+#define ENABLE_IPV6 0 
 
 #endif
