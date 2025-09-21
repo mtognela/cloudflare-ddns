@@ -1,5 +1,5 @@
 /*
-    Cloudflare Dynamic DNS Updater writter in C
+    Cloudflare Dynamic DNS Updater
     Copyright (C) 2025  Mattia Tognela
 
     This program is free software; you can redistribute it and/or
