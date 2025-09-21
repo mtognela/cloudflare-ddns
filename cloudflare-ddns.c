@@ -5,19 +5,7 @@
 #include <regex.h>
 #include <syslog.h>
 #include <unistd.h>
-
-// Configuration - modify these values
-#define AUTH_EMAIL ""
-#define AUTH_METHOD "token"  // "global" for Global API Key or "token" for Scoped API Token
-#define AUTH_KEY ""
-#define ZONE_IDENTIFIER ""
-#define RECORD_NAME ""
-#define TTL 3600
-#define PROXY "false"
-#define SITE_NAME ""
-#define SLACK_CHANNEL ""
-#define SLACK_URI ""
-#define DISCORD_URI ""
+#include "config.h"
 
 // Constants
 #define MAX_RESPONSE_SIZE 4096
