@@ -213,11 +213,6 @@ static char* extract_json_value(
     return result;
 }
 
-// Prepare common Cloudflare API headers
-#include <curl/curl.h>
-#include <stdio.h>
-#include <string.h>
-
 static struct curl_slist* prepare_headers(int include_json) {
     struct curl_slist *headers = NULL;
     char auth_header[BFF];
