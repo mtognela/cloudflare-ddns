@@ -517,7 +517,7 @@ int main(int argc, char *argv[]) {
     char old_ip_v6[MAX_IP_SIZE_V6];
     char record_id_v6[MAX_RECORD_ID_SIZE];
 
-    if (update_ip_record(RECORD_NAME_IPV6, IPV4_RECORD, current_ip_v6, sizeof(current_ip_v6),
+    if (update_ip_record(RECORD_NAME_IPV6, IPV6_RECORD, current_ip_v6, sizeof(current_ip_v6),
                          old_ip_v6, record_id_v6, ip_services_v6, IPV6_TYPE) != EXIT_SUCCESS) {
         status = EXIT_FAILURE;
     }
