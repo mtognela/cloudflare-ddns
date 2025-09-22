@@ -40,6 +40,9 @@
 #define IPV6_RECORD "AAAA"
 #define IPV6_TYPE 6
 
+#define INCLUDE_JSON 1
+#define NO_JSON 0
+
 #define CLOUDFLARE_API_DNS_QUERY "https://api.cloudflare.com/client/v4/zones/%s/dns_records?type=%s&name=%s"
 #define CLOUDFLARE_API_DNS_RECORD "https://api.cloudflare.com/client/v4/zones/%s/dns_records/%s"
 
@@ -211,7 +214,11 @@ static char* extract_json_value(
 }
 
 // Prepare common Cloudflare API headers
-static struct curl_slist* prepare_headers_get_record_dns() {
+#include <curl/curl.h>
+#include <stdio.h>
+#include <string.h>
+
+static struct curl_slist* prepare_headers(int include_json) {
     struct curl_slist *headers = NULL;
     char auth_header[BFF];
     char email_header[BFF];
@@ -227,28 +234,21 @@ static struct curl_slist* prepare_headers_get_record_dns() {
     headers = curl_slist_append(headers, email_header);
     headers = curl_slist_append(headers, auth_header);
 
+    if (include_json) {
+        headers = curl_slist_append(headers, "Content-Type: application/json");
+    }
+
     return headers;
+}
+
+static struct curl_slist* prepare_headers_get_record_dns() {
+    return prepare_headers(NO_JSON);
 }
 
 static struct curl_slist* prepare_headers_update_dns() {
-    struct curl_slist *headers = NULL;
-    char auth_header[BFF];
-    char email_header[BFF];
-
-    snprintf(email_header, sizeof(email_header), "X-Auth-Email: %s", AUTH_EMAIL);
-
-    if (strcmp(AUTH_METHOD, "global") == 0) {
-        snprintf(auth_header, sizeof(auth_header), "X-Auth-Key: %s", AUTH_KEY);
-    } else {
-        snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", AUTH_KEY);
-    }
-
-    headers = curl_slist_append(headers, email_header);
-    headers = curl_slist_append(headers, auth_header);
-    headers = curl_slist_append(headers, "Content-Type: application/json");
-
-    return headers;
+    return prepare_headers(INCLUDE_JSON);
 }
+
 
 // Get DNS record information from Cloudflare
 static int get_dns_record(

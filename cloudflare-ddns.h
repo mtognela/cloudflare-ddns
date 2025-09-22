@@ -31,6 +31,8 @@ static struct curl_slist* prepare_headers_get_record_dns();
 
 static struct curl_slist* prepare_headers_update_dns();
 
+static struct curl_slist* prepare_headers(int include_json);
+
 static int get_dns_record(
     char *old_ip, 
     char *record_id, 
