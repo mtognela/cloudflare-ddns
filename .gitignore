@@ -40,3 +40,5 @@ dist/
 Thumbs.db
 
 .temp*/
+latex/
+html/

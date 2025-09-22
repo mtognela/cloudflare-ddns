@@ -46,27 +46,36 @@
 #define CLOUDFLARE_API_DNS_QUERY "https://api.cloudflare.com/client/v4/zones/%s/dns_records?type=%s&name=%s"
 #define CLOUDFLARE_API_DNS_RECORD "https://api.cloudflare.com/client/v4/zones/%s/dns_records/%s"
 
-// IP services to try for IPv4
+/* 
+    IP services to try for IPv4 
+*/
 static const char *const ip_services_v4[] = {
     "https://api.ipify.org",
     "https://ipv4.icanhazip.com",
     NULL
 };
 
-// IP services to try for IPv6
+/* 
+    IP services to try for IPv6
+*/
 static const char *const ip_services_v6[] = {
     "https://api6.ipify.org",
     "https://ipv6.icanhazip.com",
     NULL
 };
 
-// Structure to hold response data
-struct response_data {
-    char *data;
-    size_t size;
-};
-    
-// Callback function for libcurl to write response data
+/**
+ * @brief libcurl write callback function.
+ *
+ * This function is invoked by libcurl to store received HTTP response data
+ * into a dynamically allocated buffer in a response_data structure.
+ *
+ * @param contents Pointer to the received data.
+ * @param size Size of each data element.
+ * @param nmemb Number of elements received.
+ * @param userdata Pointer to a response_data structure where the data will be appended.
+ * @return The number of bytes processed. Returning 0 will cause libcurl to abort the transfer.
+ */
 static size_t write_callback(
     char *contents, 
     size_t size, 
@@ -88,7 +97,14 @@ static size_t write_callback(
     return realsize;
 }
 
-// Log message to syslog and console
+/**
+ * @brief Logs a message to syslog and optionally to stderr.
+ *
+ * Messages with priority LOG_WARNING or higher are also printed to stderr.
+ *
+ * @param priority Syslog priority level (e.g., LOG_INFO, LOG_WARNING, LOG_ERR).
+ * @param message Null-terminated string containing the message to log.
+ */
 static void log_message(
     int priority, 
     const char *message) {
@@ -98,7 +114,14 @@ static void log_message(
     }
 }
 
-// Validate IPv4 address
+/**
+ * @brief Validates an IPv4 address string.
+ *
+ * Uses inet_pton() to verify the format of the IPv4 address.
+ *
+ * @param ip Null-terminated string containing the IPv4 address.
+ * @return 1 if the address is valid, 0 otherwise.
+ */
 static int is_valid_ipv4(const char *ip) {
     struct in_addr ipv4_addr;
 
@@ -109,7 +132,14 @@ static int is_valid_ipv4(const char *ip) {
     return 0;
 }
 
-// Validate IPv6 address
+/**
+ * @brief Validates an IPv6 address string.
+ *
+ * Uses inet_pton() to verify the format of the IPv6 address.
+ *
+ * @param ip Null-terminated string containing the IPv6 address.
+ * @return 1 if the address is valid, 0 otherwise.
+ */
 static int is_valid_ipv6(const char *ip) {
     struct in6_addr ipv6_addr;
 
@@ -120,7 +150,18 @@ static int is_valid_ipv6(const char *ip) {
     return 0;
 }
 
-// Fetch current public IP address (unified for IPv4 and IPv6)
+/**
+ * @brief Fetches the current public IP address.
+ *
+ * Iterates through a list of IP service URLs to retrieve the public IP, validates it,
+ * and stores it in the provided buffer.
+ *
+ * @param ip_buffer Buffer to store the fetched IP address.
+ * @param buffer_size Size of the buffer in bytes.
+ * @param ip_services Null-terminated array of URLs to query for the IP.
+ * @param ip_type Type of IP to fetch: IPV4_TYPE or IPV6_TYPE.
+ * @return 0 on success, -1 on failure.
+ */
 static int get_current_ip(
     char *ip_buffer, 
     size_t buffer_size, 
@@ -183,7 +224,17 @@ cleanup:
     return ret_val;
 }
 
-// Extract content from JSON response
+/**
+ * @brief Extracts the value associated with a key from a JSON string.
+ *
+ * Uses regular expressions to locate the key and returns a dynamically
+ * allocated string containing its value.
+ *
+ * @param json Null-terminated JSON string.
+ * @param key Key to search for in the JSON.
+ * @return Pointer to a dynamically allocated string containing the value,
+ *         or NULL if the key was not found. Caller must free the memory.
+ */
 static char* extract_json_value(
     const char *json, 
     const char *key) {
@@ -213,6 +264,15 @@ static char* extract_json_value(
     return result;
 }
 
+/**
+ * @brief Prepares HTTP headers for Cloudflare API requests.
+ *
+ * Adds authentication headers (X-Auth-Key or Bearer token) and optionally
+ * sets Content-Type to application/json.
+ *
+ * @param include_json INCLUDE_JSON to add Content-Type header, NO_JSON otherwise.
+ * @return Pointer to a curl_slist containing the headers. Must be freed with curl_slist_free_all().
+ */
 static struct curl_slist* prepare_headers(int include_json) {
     struct curl_slist *headers = NULL;
     char auth_header[BFF];
@@ -236,16 +296,17 @@ static struct curl_slist* prepare_headers(int include_json) {
     return headers;
 }
 
-static struct curl_slist* prepare_headers_get_record_dns() {
-    return prepare_headers(NO_JSON);
-}
-
-static struct curl_slist* prepare_headers_update_dns() {
-    return prepare_headers(INCLUDE_JSON);
-}
-
-
-// Get DNS record information from Cloudflare
+/**
+ * @brief Retrieves a DNS record from Cloudflare.
+ *
+ * Fetches the current DNS record's content and ID for a given record name and type.
+ *
+ * @param old_ip Buffer to store the current IP stored in the DNS record.
+ * @param record_id Buffer to store the Cloudflare record ID.
+ * @param record_name DNS record name (e.g., "example.com").
+ * @param record_type DNS record type ("A" for IPv4, "AAAA" for IPv6).
+ * @return EXIT_SUCCESS if the record was retrieved successfully, EXIT_FAILURE otherwise.
+ */
 static int get_dns_record(
     char *old_ip, 
     char *record_id, 
@@ -264,7 +325,7 @@ static int get_dns_record(
         return EXIT_FAILURE;
     }
 
-    headers = prepare_headers_get_record_dns();
+    headers = prepare_headers(NO_JSON);
     if (!headers) {
         goto cleanup;
     }
@@ -315,7 +376,17 @@ cleanup:
     return ret_val;
 }
 
-// Update DNS record at Cloudflare
+/**
+ * @brief Updates a DNS record at Cloudflare.
+ *
+ * Sends a PATCH request to update the DNS record to the specified IP.
+ *
+ * @param current_ip New IP address to set in the DNS record.
+ * @param record_id Cloudflare record ID to update.
+ * @param record_name DNS record name.
+ * @param record_type DNS record type ("A" or "AAAA").
+ * @return EXIT_SUCCESS if the update succeeded, EXIT_FAILURE otherwise.
+ */
 static int update_dns_record(
     const char *current_ip, 
     const char *record_id, 
@@ -335,7 +406,7 @@ static int update_dns_record(
         return EXIT_FAILURE;
     }
 
-    headers = prepare_headers_update_dns();
+    headers = prepare_headers(INCLUDE_JSON);
     if (!headers) {
         goto cleanup;
     }
@@ -379,6 +450,23 @@ cleanup:
     return ret_val;
 }
 
+/**
+ * @brief Updates a DNS record if the public IP has changed.
+ *
+ * Unified function for IPv4 and IPv6. Retrieves the current public IP,
+ * compares it to the stored DNS record, and updates the record if necessary.
+ *
+ * @param record_name DNS record name.
+ * @param record_type DNS record type ("A" or "AAAA").
+ * @param current_ip Buffer to store the current public IP.
+ * @param ip_size Size of the current_ip buffer.
+ * @param old_ip Buffer to store the previous IP from the DNS record.
+ * @param record_id Buffer to store the Cloudflare record ID.
+ * @param ip_services Array of IP service URLs to fetch the current IP.
+ * @param ip_version IP version: IPV4_TYPE or IPV6_TYPE.
+ * @return EXIT_SUCCESS if the record is up-to-date or was updated successfully,
+ *         EXIT_FAILURE otherwise.
+ */
 static int update_ip_record(
     const char *record_name,
     const char *record_type,
