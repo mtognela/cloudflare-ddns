@@ -105,6 +105,76 @@ sudo chmod +x /usr/local/bin/cloudflare-ddns
 /usr/local/bin/cloudflare-ddns
 ```
 
+---
+
+## Docker
+
+You can run the Cloudflare DDNS Updater in a lightweight Docker container using a multi-stage build. This ensures a minimal image with all necessary dependencies and avoids including build tools in the final image.
+
+### Build & Run
+
+#### 1. Build the Docker image
+
+```sh
+docker build -t cloudflare-ddns .
+```
+
+#### 2. Run the container
+
+```sh
+docker run -d \
+  --name cloudflare-ddns \
+  -v /path/to/config:/config:ro \
+  cloudflare-ddns
+```
+
+> Replace `/path/to/config` with the directory containing your `config.h` (or any runtime configuration you mount, if applicable).
+
+---
+
+### Dockerfile Overview
+
+* **Build stage**: Uses Alpine Linux to compile the DDNS updater with libcurl.
+* **Runtime stage**: Uses a minimal Alpine image with only `libcurl` and `ca-certificates` for HTTPS support.
+* The binary is stripped and copied to the runtime image for a small footprint (\~2–3 MB).
+* Runs as a **non-root user** for security.
+
+---
+
+### Using Cron in Docker
+
+If you want the updater to run at regular intervals inside the container:
+
+1. Add a `crontab` file to your project:
+
+```cron
+*/5 * * * * /usr/local/bin/cloudflare-ddns >/proc/1/fd/1 2>/proc/1/fd/2
+```
+
+2. Modify your Dockerfile to install `cronie` and run cron:
+
+```dockerfile
+RUN apk add --no-cache cronie
+COPY crontab /etc/crontabs/ddns
+CMD ["crond", "-f", "-d", "8"]
+```
+
+This will run the DDNS updater every 5 minutes and log output to Docker logs.
+
+---
+
+### Docker Logs
+
+View logs of the running container:
+
+```bash
+docker logs -f cloudflare-ddns
+```
+
+All DDNS updates and errors will be visible in real-time.
+
+---
+
 ## Setting Up Crontab
 
 To automatically update your DNS records at regular intervals, set up a cron job:
