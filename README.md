@@ -4,19 +4,53 @@ A lightweight C program that automatically updates your Cloudflare DNS records w
 
 ## Features
 
-- Written in C for minimal resource usage
-- Multiple IP detection services for reliability
-- Supports both Global API Keys and Scoped API Tokens
-- Comprehensive logging via syslog
-- IPv4 address validation
-- Easy crontab integration
-- Error handling and recovery
+- **Dual IP support** - Handles both IPv4 (A records) and IPv6 (AAAA records) simultaneously
+- **Multiple IP detection services** - Redundant fallback services for reliable IP discovery
+- **Flexible authentication** - Supports both Global API Keys and Scoped API Tokens
+- **Comprehensive logging** - Detailed logging via syslog with stderr output for warnings/errors
+- **Robust IP validation** - Uses `inet_pton()` for strict IPv4/IPv6 address validation
+- **Intelligent updates** - Only updates DNS records when IP addresses actually change
+- **Minimal resource usage** - Written in C with efficient memory management
+- **JSON parsing** - Custom regex-based JSON extraction without heavy dependencies
+- **Easy deployment** - Simple configuration via header files, perfect for crontab integration
+- **Error resilience** - Graceful handling of network failures and API errors
+- **Configurable parameters** - TTL, proxy settings, and record names easily customizable
+
+The program follows suckless philosophy with a single-purpose design, minimal dependencies, and straightforward configuration through compile-time definitions.
 
 ## Dependencies
 
-- libcurl (for HTTP requests)
-- POSIX regex library (usually included with libc)
-- Standard C library
+This program requires the following libraries and development headers:
+
+- **libcurl** - HTTP client library for making API requests to Cloudflare
+
+- **Standard C library** - Core system functions including:
+  - stdio.h (input/output operations)
+  - stdlib.h (memory management, process control)
+  - string.h (string manipulation functions)
+  - syslog.h (system logging interface)
+  - unistd.h (POSIX operating system API)
+  - regex.h (POSIX regex library)
+  - arpa/inet.h (internet address manipulation)
+
+### Installation Examples
+
+**Debian/Ubuntu:**
+```sh
+sudo apt-get install libcurl4-openssl-dev build-essential
+```
+
+**RHEL/CentOS/Fedora:**
+```sh
+sudo yum install libcurl-devel gcc make
+# or on newer versions:
+sudo dnf install libcurl-devel gcc make
+```
+
+**Alpine Linux:**
+```sh
+apk add curl-dev build-base
+```
 
 ## Build Instructions
 
