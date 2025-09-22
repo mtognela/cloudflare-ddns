@@ -122,11 +122,8 @@ docker build -t cloudflare-ddns .
 ```sh
 docker run -d \
   --name cloudflare-ddns \
-  -v /path/to/config:/config:ro \
   cloudflare-ddns
 ```
-
-> Replace `/path/to/config` with the directory containing your `config.h` (or any runtime configuration you mount, if applicable).
 
 ### Dockerfile Overview
 
