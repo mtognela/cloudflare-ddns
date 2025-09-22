@@ -147,8 +147,7 @@ static void log_message(
 }
 
 // Validate IPv4 address
-static int is_valid_ipv4(const char *ip)
-{
+static int is_valid_ipv4(const char *ip) {
     struct in_addr ipv4_addr;
 
     if (inet_pton(AF_INET, ip, &ipv4_addr) == 1)
@@ -159,8 +158,7 @@ static int is_valid_ipv4(const char *ip)
 }
 
 // Validate IPv6 address
-static int is_valid_ipv6(const char *ip)
-{
+static int is_valid_ipv6(const char *ip) {
     struct in6_addr ipv6_addr;
 
     if (inet_pton(AF_INET6, ip, &ipv6_addr) == 1)
