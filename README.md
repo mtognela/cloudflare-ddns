@@ -63,9 +63,9 @@ gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
 #define RECORD_NAME_IPV4 "subdomain_ipv4.yourdomain.com"
 #define RECORD_NAME_IPV6 "subdomain_ipv6.yourdomain.com"
 #define TTL 3600
-#define PROXY "false"  // "true" to enable Cloudflare proxy, "false" to disable
-#define ENABLE_IPV4 1 // 1 to enable ipv4 0 to disable it
-#define ENABLE_IPV6 1 // 1 to enable ipv6 0 to disable it
+#define PROXY "false"        // "true" to enable Cloudflare proxy, "false" to disable
+#define ENABLE_IPV4 1        // 1 to enable ipv4 0 to disable it
+#define ENABLE_IPV6 1        // 1 to enable ipv6 0 to disable it
 ```
 
 ### Getting Cloudflare Credentials
