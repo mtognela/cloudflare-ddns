@@ -130,16 +130,12 @@ docker run -d \
 
 > Replace `/path/to/config` with the directory containing your `config.h` (or any runtime configuration you mount, if applicable).
 
----
-
 ### Dockerfile Overview
 
 * **Build stage**: Uses Alpine Linux to compile the DDNS updater with libcurl.
 * **Runtime stage**: Uses a minimal Alpine image with only `libcurl` and `ca-certificates` for HTTPS support.
 * The binary is stripped and copied to the runtime image for a small footprint (\~2–3 MB).
 * Runs as a **non-root user** for security.
-
----
 
 ### Using Cron in Docker
 
@@ -161,7 +157,6 @@ CMD ["crond", "-f", "-d", "8"]
 
 This will run the DDNS updater every 5 minutes and log output to Docker logs.
 
----
 
 ### Docker Logs
 
@@ -172,8 +167,6 @@ docker logs -f cloudflare-ddns
 ```
 
 All DDNS updates and errors will be visible in real-time.
-
----
 
 ## Setting Up Crontab
 
