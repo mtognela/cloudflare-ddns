@@ -61,7 +61,7 @@ struct response_data {
     char *data;
     size_t size;
 };
-
+    
 // --- Function Prototypes ---
 
 static size_t write_callback(
@@ -88,7 +88,9 @@ static char* extract_json_value(
     const char *json, 
     const char *key);
 
-static struct curl_slist* prepare_headers();
+static struct curl_slist* prepare_headers_get_record_dns();
+
+static struct curl_slist* prepare_headers_update_dns();
 
 static int get_dns_record(
     char *old_ip, 
@@ -262,7 +264,26 @@ static char* extract_json_value(
 }
 
 // Prepare common Cloudflare API headers
-static struct curl_slist* prepare_headers() {
+static struct curl_slist* prepare_headers_get_record_dns() {
+    struct curl_slist *headers = NULL;
+    char auth_header[BFF];
+    char email_header[BFF];
+
+    snprintf(email_header, sizeof(email_header), "X-Auth-Email: %s", AUTH_EMAIL);
+
+    if (strcmp(AUTH_METHOD, "global") == 0) {
+        snprintf(auth_header, sizeof(auth_header), "X-Auth-Key: %s", AUTH_KEY);
+    } else {
+        snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", AUTH_KEY);
+    }
+
+    headers = curl_slist_append(headers, email_header);
+    headers = curl_slist_append(headers, auth_header);
+
+    return headers;
+}
+
+static struct curl_slist* prepare_headers_update_dns() {
     struct curl_slist *headers = NULL;
     char auth_header[BFF];
     char email_header[BFF];
@@ -301,7 +322,7 @@ static int get_dns_record(
         return EXIT_FAILURE;
     }
 
-    headers = prepare_headers();
+    headers = prepare_headers_get_record_dns();
     if (!headers) {
         goto cleanup;
     }
@@ -372,7 +393,7 @@ static int update_dns_record(
         return EXIT_FAILURE;
     }
 
-    headers = prepare_headers();
+    headers = prepare_headers_update_dns();
     if (!headers) {
         goto cleanup;
     }
