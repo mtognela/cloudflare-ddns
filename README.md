@@ -21,7 +21,7 @@ A lightweight C program that automatically updates your Cloudflare DNS records w
 ## Build Instructions
 
 ### Ubuntu/Debian
-```bash
+```sh
 # Install dependencies
 sudo apt update
 sudo apt install build-essential libcurl4-openssl-dev
@@ -32,7 +32,7 @@ gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
 ```
 
 ### CentOS/RHEL/Fedora
-```bash
+```sh
 # Install dependencies
 sudo yum install gcc make libcurl-devel
 # OR for newer versions:
@@ -43,7 +43,7 @@ gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
 ```
 
 ### Alpine Linux
-```bash
+```sh
 # Install dependencies
 sudo apk add build-base curl-dev
 
@@ -95,13 +95,13 @@ gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
 ## Installation
 
 1. After compilation, copy the binary to a system location:
-```bash
+```sh
 sudo cp cloudflare-ddns /usr/local/bin/
 sudo chmod +x /usr/local/bin/cloudflare-ddns
 ```
 
 2. Test the program manually:
-```bash
+```sh
 /usr/local/bin/cloudflare-ddns
 ```
 
@@ -110,29 +110,29 @@ sudo chmod +x /usr/local/bin/cloudflare-ddns
 To automatically update your DNS records at regular intervals, set up a cron job:
 
 1. Open the crontab editor:
-```bash
+```sh
 crontab -e
 ```
 
 2. Add one of the following lines based on your preferred update frequency:
 
 ### Every 5 minutes (recommended for dynamic IPs)
-```bash
+```sh
 */5 * * * * /usr/local/bin/cloudflare-ddns >/dev/null 2>&1
 ```
 
 ### Every 15 minutes
-```bash
+```sh
 */15 * * * * /usr/local/bin/cloudflare-ddns >/dev/null 2>&1
 ```
 
 ### Every hour
-```bash
+```sh
 0 * * * * /usr/local/bin/cloudflare-ddns >/dev/null 2>&1
 ```
 
 ### Every 6 hours
-```bash
+```sh
 0 */6 * * * /usr/local/bin/cloudflare-ddns >/dev/null 2>&1
 ```
 
@@ -143,18 +143,18 @@ crontab -e
 The program logs to syslog with the identifier "DDNS Updater". To view the logs:
 
 ### View recent logs
-```bash
-tail -f /var/log/syslog | grep "DDNS Updater"
+```sh
+tail -f /var/log/syslog | grep "Cf-DDNS-U"
 ```
 
 ### View all DDNS logs
-```bash
-journalctl -t "DDNS Updater"
+```sh
+journalctl -t "Cf-DDNS-U"
 ```
 
 ### On systems using rsyslog, you can also check
-```bash
-grep "DDNS Updater" /var/log/messages
+```sh
+grep "Cf-DDNS-U" /var/log/messages
 ```
 
 ## Return Codes
@@ -188,7 +188,7 @@ grep "DDNS Updater" /var/log/messages
 ### Manual Testing
 
 Run the program manually to see detailed output:
-```bash
+```sh
 ./cloudflare-ddns
 ```
 
