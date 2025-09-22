@@ -144,17 +144,17 @@ The program logs to syslog with the identifier "DDNS Updater". To view the logs:
 
 ### View recent logs
 ```sh
-tail -f /var/log/syslog | grep "Cf-DDNS-U"
+tail -f /var/log/syslog | grep "CF-DDNS-U"
 ```
 
 ### View all DDNS logs
 ```sh
-journalctl -t "Cf-DDNS-U"
+journalctl -t "CF-DDNS-U"
 ```
 
 ### On systems using rsyslog, you can also check
 ```sh
-grep "Cf-DDNS-U" /var/log/messages
+grep "CF-DDNS-U" /var/log/messages
 ```
 
 ## Return Codes
