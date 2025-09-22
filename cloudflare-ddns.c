@@ -36,7 +36,12 @@
 #define D_BFF 512
 
 #define IPV4_RECORD "A"
+#define IPV4_TYPE 4
 #define IPV6_RECORD "AAAA"
+#define IPV6_TYPE 6
+
+#define CLOUDFLARE_API_DNS_QUERY "https://api.cloudflare.com/client/v4/zones/%s/dns_records?type=%s&name=%s"
+#define CLOUDFLARE_API_DNS_RECORD "https://api.cloudflare.com/client/v4/zones/%s/dns_records/%s"
 
 // IP services to try for IPv4
 static const char *const ip_services_v4[] = {
@@ -60,15 +65,44 @@ struct response_data {
 
 // --- Function Prototypes ---
 
-static size_t write_callback(char *contents, size_t size, size_t nmemb, void *userdata);
-static void log_message(int priority, const char *message);
+static size_t write_callback(
+    char *contents, 
+    size_t size, 
+    size_t nmemb, 
+    void *userdata);
+
+static void log_message(
+    int priority, 
+    const char *message);
+
 static int is_valid_ipv4(const char *ip);
+
 static int is_valid_ipv6(const char *ip);
-static int get_current_ip(char *ip_buffer, size_t buffer_size, const char* const ip_services[], int ip_type);
-static char* extract_json_value(const char *json, const char *key);
+
+static int get_current_ip(
+    char *ip_buffer, 
+    size_t buffer_size, 
+    const char* const ip_services[], 
+    int ip_type);
+
+static char* extract_json_value(
+    const char *json, 
+    const char *key);
+
 static struct curl_slist* prepare_headers();
-static int get_dns_record(char *old_ip, char *record_id, const char *record_name, const char *record_type);
-static int update_dns_record(const char *current_ip, const char *record_id, const char *record_name, const char *record_type);
+
+static int get_dns_record(
+    char *old_ip, 
+    char *record_id, 
+    const char *record_name, 
+    const char *record_type);
+
+static int update_dns_record(
+    const char *current_ip, 
+    const char *record_id, 
+    const char *record_name, 
+    const char *record_type);
+
 static int update_ip_record(
     const char *record_name,
     const char *record_type,
@@ -82,7 +116,11 @@ static int update_ip_record(
 // --- Function Implementations ---
 
 // Callback function for libcurl to write response data
-static size_t write_callback(char *contents, size_t size, size_t nmemb, void *userdata) {
+static size_t write_callback(
+    char *contents, 
+    size_t size, 
+    size_t nmemb, 
+    void *userdata) {
     size_t realsize = size * nmemb;
     struct response_data *response = (struct response_data *)userdata;
 
@@ -100,7 +138,9 @@ static size_t write_callback(char *contents, size_t size, size_t nmemb, void *us
 }
 
 // Log message to syslog and console
-static void log_message(int priority, const char *message) {
+static void log_message(
+    int priority, 
+    const char *message) {
     syslog(priority, "%s", message);
     if (priority <= LOG_WARNING) {
         fprintf(stderr, "DDNS Updater: %s\n", message);
@@ -132,7 +172,12 @@ static int is_valid_ipv6(const char *ip)
 }
 
 // Fetch current public IP address (unified for IPv4 and IPv6)
-static int get_current_ip(char *ip_buffer, size_t buffer_size, const char* const ip_services[], int ip_type) {
+static int get_current_ip(
+    char *ip_buffer, 
+    size_t buffer_size, 
+    const char* const ip_services[], 
+    int ip_type) {
+        
     CURL *curl = NULL;
     CURLcode res;
     struct response_data response = { .data = NULL, .size = 0 };
@@ -164,13 +209,14 @@ static int get_current_ip(char *ip_buffer, size_t buffer_size, const char* const
             char *newline = strchr(response.data, '\n');
             if (newline) *newline = '\0';
 
-            int (*validator)(const char*) = (ip_type == 4) ? is_valid_ipv4 : is_valid_ipv6;
+            int (*validator)(const char*) = (ip_type == IPV4_TYPE) ? is_valid_ipv4 : is_valid_ipv6;
+
             if (validator(response.data)) {
                 strncpy(ip_buffer, response.data, buffer_size - 1);
                 ip_buffer[buffer_size - 1] = '\0';
 
                 char log_msg[BFF];
-                snprintf(log_msg, sizeof(log_msg), "Fetched IP (%s) %s", (ip_type == 4) ? "v4" : "v6", ip_buffer);
+                snprintf(log_msg, sizeof(log_msg), "Fetched IP (%s) %s", (ip_type == IPV4_TYPE) ? "v4" : "v6", ip_buffer);
                 log_message(LOG_INFO, log_msg);
                 ret_val = 0;
                 goto cleanup;
@@ -189,7 +235,10 @@ cleanup:
 }
 
 // Extract content from JSON response
-static char* extract_json_value(const char *json, const char *key) {
+static char* extract_json_value(
+    const char *json, 
+    const char *key) {
+
     char search_pattern[H_BFF];
     snprintf(search_pattern, sizeof(search_pattern), "\"%s\":\"([^\"]+)\"", key);
 
@@ -237,7 +286,12 @@ static struct curl_slist* prepare_headers() {
 }
 
 // Get DNS record information from Cloudflare
-static int get_dns_record(char *old_ip, char *record_id, const char *record_name, const char *record_type) {
+static int get_dns_record(
+    char *old_ip, 
+    char *record_id, 
+    const char *record_name, 
+    const char *record_type) {
+    
     CURL *curl = NULL;
     struct response_data response = { .data = NULL, .size = 0 };
     struct curl_slist *headers = NULL;
@@ -256,8 +310,8 @@ static int get_dns_record(char *old_ip, char *record_id, const char *record_name
     }
 
     snprintf(url, sizeof(url),
-        "https://api.cloudflare.com/client/v4/zones/%s/dns_records?type=%s&name=%s",
-        ZONE_IDENTIFIER, record_type, record_name);
+             CLOUDFLARE_API_DNS_QUERY,
+             ZONE_IDENTIFIER, record_type, record_name);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -302,7 +356,12 @@ cleanup:
 }
 
 // Update DNS record at Cloudflare
-static int update_dns_record(const char *current_ip, const char *record_id, const char *record_name, const char *record_type) {
+static int update_dns_record(
+    const char *current_ip, 
+    const char *record_id, 
+    const char *record_name, 
+    const char *record_type) {
+    
     CURL *curl = NULL;
     struct response_data response = { .data = NULL, .size = 0 };
     struct curl_slist *headers = NULL;
@@ -322,7 +381,7 @@ static int update_dns_record(const char *current_ip, const char *record_id, cons
     }
 
     snprintf(url, sizeof(url),
-        "https://api.cloudflare.com/client/v4/zones/%s/dns_records/%s",
+        CLOUDFLARE_API_DNS_RECORD,
         ZONE_IDENTIFIER, record_id);
 
     snprintf(json_data, sizeof(json_data),
@@ -368,14 +427,14 @@ static int update_ip_record(
     char *old_ip,
     char *record_id,
     const char *const ip_services[],
-    int ip_version)
-{
-    log_message(LOG_INFO, ip_version == 4 ? "Starting IPv4 update process." : "Starting IPv6 update process.");
+    int ip_version) {
+
+    log_message(LOG_INFO, ip_version == IPV4_TYPE ? "Starting IPv4 update process." : "Starting IPv6 update process.");
 
     if (get_current_ip(current_ip, ip_size, ip_services, ip_version) != 0)
     {
-        log_message(ip_version == 4 ? LOG_ERR : LOG_WARNING,
-                    ip_version == 4 ? "Failed to get current IPv4 address." : "Failed to get current IPv6 address.");
+        log_message(ip_version == IPV4_TYPE ? LOG_ERR : LOG_WARNING,
+                    ip_version == IPV4_TYPE ? "Failed to get current IPv4 address." : "Failed to get current IPv6 address.");
         return EXIT_FAILURE;
     }
 
@@ -395,7 +454,7 @@ static int update_ip_record(
     {
         char log_msg[BFF];
         snprintf(log_msg, sizeof(log_msg), "%s (%s) for %s has not changed. No update needed.",
-                 ip_version == 4 ? "IPv4" : "IPv6", current_ip, record_name);
+                 ip_version == IPV4_TYPE ? "IPv4" : "IPv6", current_ip, record_name);
         log_message(LOG_INFO, log_msg);
     }
 
@@ -416,7 +475,7 @@ int main(int argc, char *argv[]) {
     char record_id_v4[MAX_RECORD_ID_SIZE];
 
     if (update_ip_record(RECORD_NAME_IPV4, IPV4_RECORD, current_ip_v4, sizeof(current_ip_v4),
-                         old_ip_v4, record_id_v4, ip_services_v4, 4) != EXIT_SUCCESS) {
+                         old_ip_v4, record_id_v4, ip_services_v4, IPV4_TYPE) != EXIT_SUCCESS) {
         status = EXIT_FAILURE;
     }
 }
@@ -429,7 +488,7 @@ int main(int argc, char *argv[]) {
     char record_id_v6[MAX_RECORD_ID_SIZE];
 
     if (update_ip_record(RECORD_NAME_IPV6, IPV4_RECORD, current_ip_v6, sizeof(current_ip_v6),
-                         old_ip_v6, record_id_v6, ip_services_v6, 6) != EXIT_SUCCESS) {
+                         old_ip_v6, record_id_v6, ip_services_v6, IPV6_TYPE) != EXIT_SUCCESS) {
         status = EXIT_FAILURE;
     }
 }

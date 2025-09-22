@@ -60,10 +60,12 @@ gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
 #define AUTH_METHOD "token"  // "global" for Global API Key or "token" for Scoped API Token
 #define AUTH_KEY "your-api-key-or-token"
 #define ZONE_IDENTIFIER "your-zone-id"
-#define RECORD_NAME "subdomain.yourdomain.com"
+#define RECORD_NAME_IPV4 "subdomain_ipv4.yourdomain.com"
+#define RECORD_NAME_IPV6 "subdomain_ipv6.yourdomain.com"
 #define TTL 3600
 #define PROXY "false"  // "true" to enable Cloudflare proxy, "false" to disable
-#define SITE_NAME "Your Site Name"
+#define ENABLE_IPV4 1 // 1 to enable ipv4 0 to disable it
+#define ENABLE_IPV6 1 // 1 to enable ipv6 0 to disable it
 ```
 
 ### Getting Cloudflare Credentials
