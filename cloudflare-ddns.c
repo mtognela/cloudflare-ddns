@@ -173,7 +173,7 @@ static int get_current_ip(
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, "DDNS-Updater/1.0");
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, USER_AGENT);
 
         res = curl_easy_perform(curl);
 
@@ -222,7 +222,7 @@ static char* extract_json_value(
     const char *key) {
 
     char search_pattern[H_BFF];
-    snprintf(search_pattern, sizeof(search_pattern), SEARCH_REGEX, key);
+    snprintf(search_pattern, sizeof(search_pattern), JSON_SEARCH_REGEX, key);
 
     regex_t regex;
     regmatch_t matches[2];
@@ -235,6 +235,7 @@ static char* extract_json_value(
 
     if (regexec(&regex, json, 2, matches, 0) == 0) {
         size_t len = matches[1].rm_eo - matches[1].rm_so;
+        /* Register match start offset - Register match end offset */
         result = malloc(len + 1);
         if (result) {
             strncpy(result, json + matches[1].rm_so, len);
