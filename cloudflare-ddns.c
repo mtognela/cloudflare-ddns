@@ -222,7 +222,7 @@ static char* extract_json_value(
     const char *key) {
 
     char search_pattern[H_BFF];
-    snprintf(search_pattern, sizeof(search_pattern), "\"%s\":\"([^\"]+)\"", key);
+    snprintf(search_pattern, sizeof(search_pattern), SEARCH_REGEX, key);
 
     regex_t regex;
     regmatch_t matches[2];
