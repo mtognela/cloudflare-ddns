@@ -171,6 +171,51 @@ int update_dns_record(
     const Config_t *config);
 
 /**
+ * @brief Retrieves an integer value from an environment variable.
+ *
+ * Reads the value of an environment variable, converts it to an integer, 
+ * and stores it in the provided output pointer.
+ *
+ * @param name Name of the environment variable.
+ * @param out Pointer to store the converted integer value.
+ * @return 1 if the variable exists and conversion succeeds, 0 otherwise.
+ */
+static int getenv_int(const char *name, int *out);
+
+/**
+ * @brief Validates whether an enable/disable flag is valid.
+ *
+ * Checks if the given flag is either 0 (disabled) or 1 (enabled).
+ *
+ * @param enable_ip Integer flag representing enable/disable.
+ * @return 1 if valid, 0 otherwise.
+ */
+static int verify_enable_ip(int enable_ip);
+
+/**
+ * @brief Validates a TTL (Time-To-Live) value.
+ *
+ * Accepts a value of 1 (representing "auto") or checks if the TTL 
+ * falls within the predefined range [MIN_TTL, MAX_TTL].
+ *
+ * @param ttl TTL value to validate.
+ * @return 1 if the TTL is valid, 0 otherwise.
+ */
+static int verify_ttl(int ttl);
+
+/**
+ * @brief Verifies the validity of a configuration structure.
+ *
+ * Ensures that all required fields in the Config_t structure are set, 
+ * and that both TTL and enable flags (IPv4, IPv6) are valid.
+ *
+ * @param config Pointer to the Config_t structure to verify.
+ * @return EXIT_SUCCESS if configuration is valid, EXIT_FAILURE otherwise.
+ */
+static int verify_Config_t(Config_t *config);
+
+
+/**
  * @brief Loads configuration from environment variables.
  *
  * Reads required settings from the environment. Exits program if

@@ -10,7 +10,7 @@ WORKDIR /src
 COPY cloudflare-ddns.c cloudflare-ddns.h  ./
 
 # Build the DDNS updater dynamically
-RUN gcc -O2 -o cloudflare-ddns cloudflare-ddns.c -libcurl
+RUN gcc -O2 -o cloudflare-ddns cloudflare-ddns.c -lcurl
 
 # ---- runtime stage ----
 FROM alpine:3.22
@@ -24,12 +24,12 @@ RUN addgroup -g 1000 ddns && \
 
 # Copy the binary from build stage
 COPY --from=build /src/cloudflare-ddns /usr/local/bin/cloudflare-ddns
-COPY exec /usr/local/bin/exec
+COPY cloudflare-ddns.sh /usr/local/bin/cloudflare-ddns.sh
 
 # Copy config script to user's home directory
-RUN chown ddns:ddns /usr/local/bin/config.sh && chmod +x /usr/local/bin/config.sh
+RUN chown ddns:ddns /usr/local/bin/cloudflare-ddns.sh && chmod +x /usr/local/bin/cloudflare-ddns.sh
 
 # Switch to non-root user
 USER ddns
 
-ENTRYPOINT ["/usr/local/bin/exec"]
+ENTRYPOINT ["/usr/local/bin/cloudflare-ddns.sh"]

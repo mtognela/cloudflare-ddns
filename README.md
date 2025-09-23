@@ -25,9 +25,9 @@ This program requires the following libraries and development headers:
 - **libcurl** - HTTP client library for making API requests to Cloudflare
 
 - **Standard C library** - Core system functions including:
-  - stdio.h     (input/output operations)
-  - stdlib.h    (memory management, process control)
-  - string.h    (string manipulation functions)
+  - stdio.h     (ISO C standard input/output operations)
+  - stdlib.h    (ISO C memory management, process control)
+  - string.h    (ISO C string manipulation functions)
   - syslog.h    (POSIX system error logging)
   - unistd.h    (POSIX operating system API)
   - regex.h     (POSIX regex library)
@@ -87,19 +87,40 @@ gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
 
 ## Configuration
 
-1. Edit the `config.h` file with your Cloudflare credentials and settings:
+Configuration is now handled **via environment variables**
 
-```c
-#define AUTH_EMAIL       "your-email@example.com"
-#define AUTH_METHOD      "token"  /* "global" for Global API Key or "token" for Scoped API Token */
-#define AUTH_KEY         "your-api-key-or-token"
-#define ZONE_IDENTIFIER  "your-zone-id"
-#define RECORD_NAME_IPV4 "yourdomain-ipv4.com"
-#define RECORD_NAME_IPV6 "yourdomain-ipv6.com"
-#define TTL               3600    /* how long DNS resolvers should cache the IP address    */
-#define PROXY             "false" /* "true" to enable Cloudflare proxy, "false" to disable */
-#define ENABLE_IPV4       1       /* 1 to enable ipv4 0 to disable it */
-#define ENABLE_IPV6       1       /* 1 to enable ipv6 0 to disable it */
+Example wrapper script (`cloudflare-ddns.sh`):
+
+```sh
+#!/usr/bin/env sh
+# Cloudflare Dynamic DNS Updater Configuration
+
+# Cloudflare authentication
+export CF_AUTH_EMAIL=your-email@example.com
+export CF_AUTH_METHOD=token          # "global" for Global API Key or "token" for Scoped API Token
+export CF_AUTH_KEY=your-api-key-or-token
+export CF_ZONE_ID=your-zone-id
+
+# DNS Records
+export CF_RECORD_NAME_IPV4=yourdomain-ipv4.com
+export CF_RECORD_NAME_IPV6=yourdomain-ipv6.com
+
+# Record options
+export CF_TTL=3600                   #  not proxied 30 s (Enterprise) or 60 s (non-Enterprise) and 1 day. proxied only auto (auto equals to 300s)
+export CF_PROXY=false                # "true" to enable Cloudflare proxy, "false" to disable
+
+# Feature toggles
+export CF_ENABLE_IPV4=1              # 1 to enable IPv4 updates, 0 to disable
+export CF_ENABLE_IPV6=1              # 1 to enable IPv6 updates, 0 to disable
+
+exec /usr/local/bin/cloudflare-ddns
+```
+
+Make the script executable:
+
+```sh
+chmod +x cloudflare-ddns.sh
+./cloudflare-ddns.sh
 ```
 
 ### Getting Cloudflare Credentials
@@ -131,12 +152,14 @@ gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
 1. After compilation, copy the binary to a system location:
 ```sh
 sudo cp cloudflare-ddns /usr/local/bin/
+sudo cp exec /usr/local/bin
 sudo chmod +x /usr/local/bin/cloudflare-ddns
+sudo chmod +x /usr/local/bin/exec
 ```
 
 2. Test the program manually:
 ```sh
-/usr/local/bin/cloudflare-ddns
+/usr/local/bin/exec
 ```
 
 ## Docker
@@ -288,10 +311,10 @@ For more verbose debugging, you can also check the syslog in real-time while run
 
 ## Security Considerations
 
-- Keep your `config.h` file secure and don't share it
-- Consider using API tokens instead of Global API Keys for better security
-- Regularly rotate your API credentials
-- Ensure proper file permissions on the compiled binary
+* Protect your wrapper script containing secrets
+* Prefer API Tokens over Global API Keys
+* Regularly rotate credentials
+* Run with least privilege
 
 ## License
 

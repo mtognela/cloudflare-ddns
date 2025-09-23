@@ -12,7 +12,7 @@ export CF_RECORD_NAME_IPV4=yourdomain-ipv4.com
 export CF_RECORD_NAME_IPV6=yourdomain-ipv6.com
 
 # Record options
-export CF_TTL=3600                   # Time in seconds DNS resolvers should cache the IP
+export CF_TTL=3600                   # not proxied from 30s (Enterprise) or 60s (non-Enterprise) to 86400s. proxied only auto (auto equals to 300s)
 export CF_PROXY=false                # "true" to enable Cloudflare proxy, "false" to disable
 
 # Feature toggles

@@ -53,6 +53,10 @@
 #define LOG_ID "CF-DDNS-U"
 #define USER_AGENT "CF-DDNS-U"
 
+#define MAX_TTL 2147483647
+#define AUTO_TTL 300
+#define MIN_TTL 120
+
 /* 
     IP services to try for IPv4 
 */
@@ -131,8 +135,7 @@ static void log_message(
 static int is_valid_ipv4(const char *ip) {
     struct in_addr ipv4_addr;
 
-    if (inet_pton(AF_INET, ip, &ipv4_addr))
-    {
+    if (inet_pton(AF_INET, ip, &ipv4_addr)) {
         return 1;
     }
     return 0;
@@ -149,8 +152,7 @@ static int is_valid_ipv4(const char *ip) {
 static int is_valid_ipv6(const char *ip) {
     struct in6_addr ipv6_addr;
 
-    if (inet_pton(AF_INET6, ip, &ipv6_addr))
-    {
+    if (inet_pton(AF_INET6, ip, &ipv6_addr)) {
         return 1;
     }
     return 0;
@@ -428,7 +430,7 @@ int update_dns_record(
 
     snprintf(json_data, sizeof(json_data),
              JSON_QUETY_FORMAT,
-             record_type, record_name, current_ip, config->ttl, config->proxy);
+             record_type, record_name, current_ip, config->ttl == 1? AUTO_TTL : config->ttl, config->proxy);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
@@ -462,6 +464,81 @@ cleanup:
 }
 
 /**
+ * @brief Retrieves an integer value from an environment variable.
+ *
+ * Reads the value of an environment variable, converts it to an integer, 
+ * and stores it in the provided output pointer.
+ *
+ * @param name Name of the environment variable.
+ * @param out Pointer to store the converted integer value.
+ * @return 1 if the variable exists and conversion succeeds, 0 otherwise.
+ */
+static int getenv_int(const char *name, int *out) {
+    char *val = getenv(name);
+    if (!val) return 0;  
+
+    *out = atoi(val);
+    return 1;
+}
+
+/**
+ * @brief Validates whether an enable/disable flag is valid.
+ *
+ * Checks if the given flag is either 0 (disabled) or 1 (enabled).
+ *
+ * @param enable_ip Integer flag representing enable/disable.
+ * @return 1 if valid, 0 otherwise.
+ */
+static int verify_enable_ip(int enable_ip) {
+    if (enable_ip == 1 || enable_ip == 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Validates a TTL (Time-To-Live) value.
+ *
+ * Accepts a value of 1 (representing "auto") or checks if the TTL 
+ * falls within the predefined range [MIN_TTL, MAX_TTL].
+ *
+ * @param ttl TTL value to validate.
+ * @return 1 if the TTL is valid, 0 otherwise.
+ */
+static int verify_ttl(int ttl) {
+    return ttl == 1 || (ttl >= MIN_TTL && ttl <= MAX_TTL);
+}
+
+/**
+ * @brief Verifies the validity of a configuration structure.
+ *
+ * Ensures that all required fields in the Config_t structure are set, 
+ * and that both TTL and enable flags (IPv4, IPv6) are valid.
+ *
+ * @param config Pointer to the Config_t structure to verify.
+ * @return EXIT_SUCCESS if configuration is valid, EXIT_FAILURE otherwise.
+ */
+static int verify_Config_t(Config_t *config) {
+    if (
+        !config->auth_email                    || 
+        !config->auth_method                   || 
+        !config->auth_key                      || 
+        !config->zone_id                       || 
+        !config->record_name_ipv4              ||                 
+        !config->record_name_ipv6              ||                   
+        !config->proxy                         ||
+        !verify_ttl(config->ttl)               || 
+        !verify_enable_ip(config->enable_ipv4) ||
+        !verify_enable_ip(config->enable_ipv6)) {
+        log_message(LOG_ERR, "Missing required environment variables! Check your cloudflare-ddns.sh\n");
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+/**
  * @brief Loads configuration from environment variables.
  *
  * Reads required settings from the environment. Exits program if
@@ -470,24 +547,23 @@ cleanup:
  * @param cfg Pointer to Config_t to populate.
  * @return 0 on success, nonzero on error.
  */
-int load_config(Config_t *cfg) {
-    cfg->auth_email       =                   getenv("CF_AUTH_EMAIL");
-    cfg->auth_method      =                   getenv("CF_AUTH_METHOD");
-    cfg->auth_key         =                   getenv("CF_AUTH_KEY");
-    cfg->zone_id          =                   getenv("CF_ZONE_ID");
-    cfg->record_name_ipv4 =                   getenv("CF_RECORD_NAME_IPV4");
-    cfg->record_name_ipv6 =                   getenv("CF_RECORD_NAME_IPV6");
-    cfg->proxy            =                   getenv("CF_PROXY");
-    cfg->ttl              =              atoi(getenv("CF_TTL"));
-    cfg->enable_ipv4      =              atoi(getenv("CF_ENABLE_IPV4"));
-    cfg->enable_ipv6      =              atoi(getenv("CF_ENABLE_IPV6"));
+int load_config(Config_t *config) {
+    config->auth_email       = getenv("CF_AUTH_EMAIL");
+    config->auth_method      = getenv("CF_AUTH_METHOD");
+    config->auth_key         = getenv("CF_AUTH_KEY");
+    config->zone_id          = getenv("CF_ZONE_ID");
+    config->record_name_ipv4 = getenv("CF_RECORD_NAME_IPV4");
+    config->record_name_ipv6 = getenv("CF_RECORD_NAME_IPV6");
+    config->proxy            = getenv("CF_PROXY");
 
-    if (!cfg->auth_email || !cfg->auth_method || !cfg->auth_key || !cfg->zone_id) {
-        fprintf(stderr, "Missing required environment variables! Check your config.sh\n");
+    if (!getenv_int("CF_TTL", &config->ttl)                 ||
+        !getenv_int("CF_ENABLE_IPV4", &config->enable_ipv4) ||
+        !getenv_int("CF_ENABLE_IPV6", &config->enable_ipv6)) {
+        log_message(LOG_ERR, "Numeric environment variables missing!\n");
         return EXIT_FAILURE;
     }
 
-    return EXIT_SUCCESS;
+    return verify_Config_t(config);
 }
 
 /**
