@@ -19,7 +19,8 @@
     along with this program; if not, see <https://www.gnu.org/licenses/>.
 */
 
-#include <stddef.h>  
+#include <stddef.h> 
+#include "config.h" 
 
 /**
  * @Response
@@ -113,7 +114,7 @@ char* extract_json_value(const char *json, const char *key);
  * @param include_json INCLUDE_JSON to add Content-Type header, NO_JSON otherwise.
  * @return Pointer to a curl_slist containing the headers. Must be freed with curl_slist_free_all().
  */
-static struct curl_slist* prepare_headers(int include_json);
+static struct curl_slist* prepare_headers(int include_json, const Config_t *config);
 
 /**
  * @brief Retrieves a DNS record from Cloudflare.
@@ -126,7 +127,12 @@ static struct curl_slist* prepare_headers(int include_json);
  * @param record_type DNS record type ("A" for IPv4, "AAAA" for IPv6).
  * @return EXIT_SUCCESS if the record was retrieved successfully, EXIT_FAILURE otherwise.
  */
-int get_dns_record(char *old_ip, char *record_id, const char *record_name, const char *record_type);
+int get_dns_record(
+    char *old_ip, 
+    char *record_id, 
+    const char *record_name, 
+    const char *record_type,
+    const Config_t *config);
 
 /**
  * @brief Updates a DNS record at Cloudflare.
@@ -139,8 +145,13 @@ int get_dns_record(char *old_ip, char *record_id, const char *record_name, const
  * @param record_type DNS record type ("A" or "AAAA").
  * @return EXIT_SUCCESS if the update succeeded, EXIT_FAILURE otherwise.
  */
-int update_dns_record(const char *current_ip, const char *record_id, const char *record_name, const char *record_type);
-
+int update_dns_record(
+    const char *current_ip, 
+    const char *record_id, 
+    const char *record_name, 
+    const char *record_type,
+    const Config_t *config);
+    
 /**
  * @brief Updates a DNS record if the public IP has changed.
  *
@@ -158,6 +169,15 @@ int update_dns_record(const char *current_ip, const char *record_id, const char 
  * @return EXIT_SUCCESS if the record is up-to-date or was updated successfully,
  *         EXIT_FAILURE otherwise.
  */
-static int update_ip_record(const char *record_name, const char *record_type, char *current_ip, size_t ip_size, char *old_ip, char *record_id, const char *const ip_services[], int ip_version);
+static int update_ip_record(
+    const char *record_name,
+    const char *record_type,
+    char *current_ip,
+    size_t ip_size,
+    char *old_ip,
+    char *record_id,
+    const char *const ip_services[],
+    int ip_version,
+    Config_t *config);
 
 #endif

@@ -30,9 +30,9 @@ typedef struct {
     const char *record_name_ipv4;
     const char *record_name_ipv6;
     const char *proxy; 
-    const int  *ttl;      
-    const int  *enable_ipv4; 
-    const int  *enable_ipv6; 
+          int  ttl;      
+          int  enable_ipv4; 
+          int  enable_ipv6; 
 } Config_t;
 
 /**

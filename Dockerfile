@@ -1,32 +1,37 @@
 # ---- build stage ---- 
 FROM alpine:3.22 AS build
 
-# install minimal build dependencies
+# Install minimal build dependencies
 RUN apk add --no-cache gcc musl-dev libcurl curl-dev
 
 WORKDIR /src
 
-# copy your Cloudflare updater sources
-COPY cloudflare-ddns.c cloudflare-ddns.h config.h costant.h ./
+# Copy your Cloudflare updater sources
+COPY cloudflare-ddns.c cloudflare-ddns.h config.c config.h constant.h ./
 
-# build the DDNS updater dynamically
-RUN gcc -O2 -o cloudflare-ddns cloudflare-ddns.c -lcurl && \
+# Build the DDNS updater dynamically
+RUN gcc -O2 -o cloudflare-ddns cloudflare-ddns.c config.c -lcurl && \
     strip cloudflare-ddns
 
 # ---- runtime stage ----
 FROM alpine:3.22
 
-# install runtime dependencies
+# Install runtime dependencies
 RUN apk add --no-cache libcurl ca-certificates
 
-# create a non-root user
+# Create a non-root user
 RUN addgroup -g 1000 ddns && \
     adduser -D -s /bin/sh -u 1000 -G ddns ddns
 
-# copy the binary
+# Copy the binary from build stage
 COPY --from=build /src/cloudflare-ddns /usr/local/bin/cloudflare-ddns
+COPY exec.sh /usr/local/bin/exec
 
-# switch to non-root user
+# Copy config script to user's home directory
+COPY config.sh /usr/local/bin/config.sh
+RUN chown ddns:ddns /usr/local/bin/config.sh && chmod +x /usr/local/bin/config.sh
+
+# Switch to non-root user
 USER ddns
 
-ENTRYPOINT ["/usr/local/bin/cloudflare-ddns"]
+ENTRYPOINT ["/usr/local/bin/exec"]
