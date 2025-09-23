@@ -64,7 +64,7 @@ static size_t write_callback(
     size_t nmemb, 
     void *userdata) {
     size_t realsize = size * nmemb;
-    Response_t *response = (Response_t *)userdata;
+    Response_t *response = (Response_t *) userdata;
 
     char *ptr = realloc(response->data, response->size + realsize + 1);
     if (!ptr) {
@@ -398,8 +398,8 @@ static int update_dns_record(
         ZONE_IDENTIFIER, record_id);
 
     snprintf(json_data, sizeof(json_data),
-        "{\"type\":\"%s\",\"name\":\"%s\",\"content\":\"%s\",\"ttl\":%d,\"proxied\":%s}",
-        record_type, record_name, current_ip, TTL, PROXY);
+             JSON_QUETY_FORMAT,
+             record_type, record_name, current_ip, TTL, PROXY);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");

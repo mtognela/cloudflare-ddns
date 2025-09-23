@@ -37,6 +37,8 @@
 #define CLOUDFLARE_API_DNS_QUERY "https://api.cloudflare.com/client/v4/zones/%s/dns_records?type=%s&name=%s"
 #define CLOUDFLARE_API_DNS_RECORD "https://api.cloudflare.com/client/v4/zones/%s/dns_records/%s"
 
+#define JSON_QUETY_FORMAT "{\"type\":\"%s\",\"name\":\"%s\",\"content\":\"%s\",\"ttl\":%d,\"proxied\":%s}"
+
 #define LOG_ID "CF-DDNS-U"
 
 #endif
