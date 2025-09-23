@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Cloudflare Dynamic DNS Updater Configuration
-CF_DDNS_PATH="/usr/local/bin"
+
 # Cloudflare authentication
 export CF_AUTH_EMAIL=your-email@example.com
 export CF_AUTH_METHOD=token          # "global" for Global API Key or "token" for Scoped API Token
@@ -19,4 +19,4 @@ export CF_PROXY=false                # "true" to enable Cloudflare proxy, "false
 export CF_ENABLE_IPV4=1              # 1 to enable IPv4 updates, 0 to disable
 export CF_ENABLE_IPV6=1              # 1 to enable IPv6 updates, 0 to disable
 
-exec {$CF_DDNS_PATH}/cloudflare-ddns
+exec /usr/local/bin/cloudflare-ddns
