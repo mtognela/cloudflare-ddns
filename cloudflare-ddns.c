@@ -144,7 +144,7 @@ static int is_valid_ipv6(const char *ip) {
  * @param ip_type Type of IP to fetch: IPV4_TYPE or IPV6_TYPE.
  * @return 0 on success, -1 on failure.
  */
-static int get_current_ip(
+int get_current_ip(
     char *ip_buffer, 
     size_t buffer_size, 
     const char* const ip_services[], 
@@ -217,7 +217,7 @@ cleanup:
  * @return Pointer to a dynamically allocated string containing the value,
  *         or NULL if the key was not found. Caller must free the memory.
  */
-static char* extract_json_value(
+char* extract_json_value(
     const char *json, 
     const char *key) {
 
@@ -290,7 +290,7 @@ static struct curl_slist* prepare_headers(int include_json) {
  * @param record_type DNS record type ("A" for IPv4, "AAAA" for IPv6).
  * @return EXIT_SUCCESS if the record was retrieved successfully, EXIT_FAILURE otherwise.
  */
-static int get_dns_record(
+int get_dns_record(
     char *old_ip, 
     char *record_id, 
     const char *record_name, 
@@ -370,7 +370,7 @@ cleanup:
  * @param record_type DNS record type ("A" or "AAAA").
  * @return EXIT_SUCCESS if the update succeeded, EXIT_FAILURE otherwise.
  */
-static int update_dns_record(
+int update_dns_record(
     const char *current_ip, 
     const char *record_id, 
     const char *record_name, 
