@@ -7,7 +7,7 @@ RUN apk add --no-cache gcc musl-dev libcurl curl-dev
 WORKDIR /src
 
 # Copy your Cloudflare updater sources
-COPY cloudflare-ddns.c cloudflare-ddns.h config.c config.h constant.h ./
+COPY cloudflare-ddns.c cloudflare-ddns.h config.c config.h costant.h ./
 
 # Build the DDNS updater dynamically
 RUN gcc -O2 -o cloudflare-ddns cloudflare-ddns.c config.c -lcurl && \
