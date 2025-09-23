@@ -256,17 +256,17 @@ char* extract_json_value(
  * @param include_json INCLUDE_JSON to add Content-Type header, NO_JSON otherwise.
  * @return Pointer to a curl_slist containing the headers. Must be freed with curl_slist_free_all().
  */
-static struct curl_slist* prepare_headers(int include_json) {
+static struct curl_slist* prepare_headers(int include_json, const Config_t *config) {
     struct curl_slist *headers = NULL;
     char auth_header[BFF];
     char email_header[BFF];
 
-    snprintf(email_header, sizeof(email_header), "X-Auth-Email: %s", AUTH_EMAIL);
+    snprintf(email_header, sizeof(email_header), "X-Auth-Email: %s", config->auth_email);
 
-    if (strcmp(AUTH_METHOD, "global") == 0) {
-        snprintf(auth_header, sizeof(auth_header), "X-Auth-Key: %s", AUTH_KEY);
+    if (strcmp(config->auth_method, "global") == 0) {
+        snprintf(auth_header, sizeof(auth_header), "X-Auth-Key: %s", config->auth_key);
     } else {
-        snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", AUTH_KEY);
+        snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", config->auth_key);
     }
 
     headers = curl_slist_append(headers, email_header);
@@ -294,7 +294,8 @@ int get_dns_record(
     char *old_ip, 
     char *record_id, 
     const char *record_name, 
-    const char *record_type) {
+    const char *record_type,
+    const Config_t *config) {
     
     CURL *curl = NULL;
     Response_t response = { .data = NULL, .size = 0 };
@@ -308,14 +309,14 @@ int get_dns_record(
         return EXIT_FAILURE;
     }
 
-    headers = prepare_headers(NO_JSON);
+    headers = prepare_headers(NO_JSON,config);
     if (!headers) {
         goto cleanup;
     }
 
     snprintf(url, sizeof(url),
              CLOUDFLARE_API_DNS_QUERY,
-             ZONE_IDENTIFIER, record_type, record_name);
+             config->zone_id, record_type, record_name);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -374,7 +375,8 @@ int update_dns_record(
     const char *current_ip, 
     const char *record_id, 
     const char *record_name, 
-    const char *record_type) {
+    const char *record_type,
+    const Config_t *config) {
     
     CURL *curl = NULL;
     Response_t response = { .data = NULL, .size = 0 };
@@ -389,18 +391,18 @@ int update_dns_record(
         return EXIT_FAILURE;
     }
 
-    headers = prepare_headers(INCLUDE_JSON);
+    headers = prepare_headers(INCLUDE_JSON, config);
     if (!headers) {
         goto cleanup;
     }
 
     snprintf(url, sizeof(url),
         CLOUDFLARE_API_DNS_RECORD,
-        ZONE_IDENTIFIER, record_id);
+        config->zone_id, record_id);
 
     snprintf(json_data, sizeof(json_data),
              JSON_QUETY_FORMAT,
-             record_type, record_name, current_ip, TTL, PROXY);
+             record_type, record_name, current_ip, config->ttl, config->proxy);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
@@ -458,7 +460,8 @@ static int update_ip_record(
     char *old_ip,
     char *record_id,
     const char *const ip_services[],
-    int ip_version) {
+    int ip_version,
+    Config_t *config) {
 
     log_message(LOG_INFO, ip_version == IPV4_TYPE ? "Starting IPv4 update process." : "Starting IPv6 update process.");
 
@@ -469,14 +472,14 @@ static int update_ip_record(
         return EXIT_FAILURE;
     }
 
-    if (get_dns_record(old_ip, record_id, record_name, record_type) != EXIT_SUCCESS)
+    if (get_dns_record(old_ip, record_id, record_name, record_type, config) != EXIT_SUCCESS)
     {
         return EXIT_FAILURE;
     }
 
     if (strcmp(current_ip, old_ip) != 0)
     {
-        if (update_dns_record(current_ip, record_id, record_name, record_type) != EXIT_SUCCESS)
+        if (update_dns_record(current_ip, record_id, record_name, record_type, config) != EXIT_SUCCESS)
         {
             return EXIT_FAILURE;
         }
@@ -499,32 +502,43 @@ int main(int argc, char *argv[]) {
     openlog(LOG_ID, LOG_PID | LOG_CONS, LOG_USER);
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
-#if ENABLE_IPV4
-{
-    char current_ip_v4[MAX_IP_SIZE_V4];
-    char old_ip_v4[MAX_IP_SIZE_V4];
-    char record_id_v4[MAX_RECORD_ID_SIZE];
-
-    if (update_ip_record(RECORD_NAME_IPV4, IPV4_RECORD, current_ip_v4, sizeof(current_ip_v4),
-                         old_ip_v4, record_id_v4, ip_services_v4, IPV4_TYPE) != EXIT_SUCCESS) {
+    Config_t *config;
+    
+    if (load_config(config) == EXIT_FAILURE)  {
         status = EXIT_FAILURE;
+        goto cleanup;
     }
-}
-#endif
 
-#if ENABLE_IPV6
-{
-    char current_ip_v6[MAX_IP_SIZE_V6];
-    char old_ip_v6[MAX_IP_SIZE_V6];
-    char record_id_v6[MAX_RECORD_ID_SIZE];
+    if (config->enable_ipv4)
+    {
+        char current_ip_v4[MAX_IP_SIZE_V4];
+        char old_ip_v4[MAX_IP_SIZE_V4];
+        char record_id_v4[MAX_RECORD_ID_SIZE];
 
-    if (update_ip_record(RECORD_NAME_IPV6, IPV6_RECORD, current_ip_v6, sizeof(current_ip_v6),
-                         old_ip_v6, record_id_v6, ip_services_v6, IPV6_TYPE) != EXIT_SUCCESS) {
-        status = EXIT_FAILURE;
+        if (update_ip_record(config->record_name_ipv4, IPV4_RECORD, current_ip_v4, sizeof(current_ip_v4),
+                             old_ip_v4, record_id_v4, ip_services_v4, IPV4_TYPE, config) != EXIT_SUCCESS)
+        {
+            status = EXIT_FAILURE;
+            goto cleanup;
+        }
     }
-}
-#endif
 
+    if (config->enable_ipv6)
+    {
+        char current_ip_v6[MAX_IP_SIZE_V6];
+        char old_ip_v6[MAX_IP_SIZE_V6];
+        char record_id_v6[MAX_RECORD_ID_SIZE];
+
+        if (update_ip_record(config->record_name_ipv6, IPV6_RECORD, current_ip_v6, sizeof(current_ip_v6),
+                             old_ip_v6, record_id_v6, ip_services_v6, IPV6_TYPE, config) != EXIT_SUCCESS)
+        {
+            status = EXIT_FAILURE;
+            goto cleanup;
+        }
+    }
+    
+cleanup:
+    if(config) free(config);
     curl_global_cleanup();
     closelog();
 

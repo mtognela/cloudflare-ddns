@@ -19,15 +19,26 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define AUTH_EMAIL       "your-email@example.com"
-#define AUTH_METHOD      "token"  /* "global" for Global API Key or "token" for Scoped API Token */
-#define AUTH_KEY         "your-api-key-or-token"
-#define ZONE_IDENTIFIER  "your-zone-id"
-#define RECORD_NAME_IPV4 "yourdomain-ipv4.com"
-#define RECORD_NAME_IPV6 "yourdomain-ipv6.com"
-#define TTL               3600    /* how long DNS resolvers should cache the IP address    */
-#define PROXY             "false" /* "true" to enable Cloudflare proxy, "false" to disable */
-#define ENABLE_IPV4       1       /* 1 to enable ipv4 0 to disable it */
-#define ENABLE_IPV6       1       /* 1 to enable ipv6 0 to disable it */
+#include <stddef.h>
+
+/* Configuration struct */
+typedef struct {
+    const char *auth_email;
+    const char *auth_method;
+    const char *auth_key;
+    const char *zone_id;
+    const char *record_name_ipv4;
+    const char *record_name_ipv6;
+    const char *proxy; 
+    const int  *ttl;      
+    const int  *enable_ipv4; 
+    const int  *enable_ipv6; 
+} Config_t;
+
+/**
+ * Load configuration from environment variables.
+ * Exits program if required values are missing.
+ */
+int load_config(Config_t *cfg);
 
 #endif
