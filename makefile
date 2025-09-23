@@ -1,14 +1,13 @@
 CC = zig cc
 LDFLAGS = -lcurl
 TARGET = cloudflare-ddns.out
-SRC = cloudflare-ddns.c config.c
-HEADERS = config.h
+SRC = cloudflare-ddns.c 
 
 .PHONY: build clean
 
 build: $(TARGET)
 
-$(TARGET): $(SRC) $(HEADERS)
+$(TARGET): $(SRC) 
 	$(CC) -o $(TARGET) $(SRC) $(LDFLAGS)
 
 clean:

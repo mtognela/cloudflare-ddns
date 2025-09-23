@@ -7,11 +7,10 @@ RUN apk add --no-cache gcc musl-dev libcurl curl-dev
 WORKDIR /src
 
 # Copy your Cloudflare updater sources
-COPY cloudflare-ddns.c cloudflare-ddns.h config.c config.h costant.h ./
+COPY cloudflare-ddns.c cloudflare-ddns.h  ./
 
 # Build the DDNS updater dynamically
-RUN gcc -O2 -o cloudflare-ddns cloudflare-ddns.c config.c -lcurl && \
-    strip cloudflare-ddns
+RUN gcc -O2 -o cloudflare-ddns cloudflare-ddns.c -libcurl
 
 # ---- runtime stage ----
 FROM alpine:3.22
@@ -25,10 +24,9 @@ RUN addgroup -g 1000 ddns && \
 
 # Copy the binary from build stage
 COPY --from=build /src/cloudflare-ddns /usr/local/bin/cloudflare-ddns
-COPY exec.sh /usr/local/bin/exec
+COPY exec /usr/local/bin/exec
 
 # Copy config script to user's home directory
-COPY config.sh /usr/local/bin/config.sh
 RUN chown ddns:ddns /usr/local/bin/config.sh && chmod +x /usr/local/bin/config.sh
 
 # Switch to non-root user

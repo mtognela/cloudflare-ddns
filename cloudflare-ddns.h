@@ -20,7 +20,6 @@
 */
 
 #include <stddef.h> 
-#include "config.h" 
 
 /**
  * @Response
@@ -33,6 +32,21 @@ typedef struct {
     char *data; /**< Pointer to dynamically allocated memory holding the response content */
     size_t size; /**< Current size of the response content in bytes */
 } Response_t;
+
+
+/* Configuration struct */
+typedef struct {
+    const char *auth_email;
+    const char *auth_method;
+    const char *auth_key;
+    const char *zone_id;
+    const char *record_name_ipv4;
+    const char *record_name_ipv6;
+    const char *proxy; 
+          int  ttl;      
+          int  enable_ipv4; 
+          int  enable_ipv6; 
+} Config_t;
 
 /**
  * @brief libcurl write callback function.
@@ -151,6 +165,12 @@ int update_dns_record(
     const char *record_name, 
     const char *record_type,
     const Config_t *config);
+
+/**
+ * Load configuration from environment variables.
+ * Exits program if required values are missing.
+ */
+int load_config(Config_t *cfg);
     
 /**
  * @brief Updates a DNS record if the public IP has changed.
