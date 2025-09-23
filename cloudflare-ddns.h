@@ -22,16 +22,16 @@
 #include <stddef.h>  
 
 /**
- * @struct response_data
+ * @Response
  * @brief Stores the response data received from a libcurl HTTP request.
  *
  * This structure holds a dynamically allocated buffer containing the response
  * and its current size.
  */
-struct response_data {
+typedef struct {
     char *data; /**< Pointer to dynamically allocated memory holding the response content */
     size_t size; /**< Current size of the response content in bytes */
-};
+} Response_t;
 
 /**
  * @brief libcurl write callback function.

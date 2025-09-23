@@ -64,7 +64,7 @@ static size_t write_callback(
     size_t nmemb, 
     void *userdata) {
     size_t realsize = size * nmemb;
-    struct response_data *response = (struct response_data *)userdata;
+    Response_t *response = (Response_t *)userdata;
 
     char *ptr = realloc(response->data, response->size + realsize + 1);
     if (!ptr) {
@@ -152,7 +152,7 @@ static int get_current_ip(
         
     CURL *curl = NULL;
     CURLcode res;
-    struct response_data response = { .data = NULL, .size = 0 };
+    Response_t response = { .data = NULL, .size = 0 };
     int ret_val = -1;
     size_t i;
 
@@ -296,7 +296,7 @@ static int get_dns_record(
     const char *record_type) {
     
     CURL *curl = NULL;
-    struct response_data response = { .data = NULL, .size = 0 };
+    Response_t response = { .data = NULL, .size = 0 };
     struct curl_slist *headers = NULL;
     char url[D_BFF];
     int ret_val = EXIT_FAILURE;
@@ -376,7 +376,7 @@ static int update_dns_record(
     const char *record_type) {
     
     CURL *curl = NULL;
-    struct response_data response = { .data = NULL, .size = 0 };
+    Response_t response = { .data = NULL, .size = 0 };
     struct curl_slist *headers = NULL;
     char url[D_BFF];
     char json_data[D_BFF];
@@ -461,7 +461,7 @@ static int update_ip_record(
 
     log_message(LOG_INFO, ip_version == IPV4_TYPE ? "Starting IPv4 update process." : "Starting IPv6 update process.");
 
-    if (get_current_ip(current_ip, ip_size, ip_services, ip_version) != 0)
+    if (get_current_ip(current_ip, ip_size, ip_services, ip_version) != EXIT_SUCCESS)
     {
         log_message(ip_version == IPV4_TYPE ? LOG_ERR : LOG_WARNING,
                     ip_version == IPV4_TYPE ? "Failed to get current IPv4 address." : "Failed to get current IPv6 address.");
