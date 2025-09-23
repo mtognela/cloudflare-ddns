@@ -25,13 +25,13 @@ This program requires the following libraries and development headers:
 - **libcurl** - HTTP client library for making API requests to Cloudflare
 
 - **Standard C library** - Core system functions including:
-  - stdio.h (input/output operations)
-  - stdlib.h (memory management, process control)
-  - string.h (string manipulation functions)
-  - syslog.h (system logging interface)
-  - unistd.h (POSIX operating system API)
-  - regex.h (POSIX regex library)
-  - arpa/inet.h (internet address manipulation)
+  - stdio.h     (input/output operations)
+  - stdlib.h    (memory management, process control)
+  - string.h    (string manipulation functions)
+  - syslog.h    (POSIX system error logging)
+  - unistd.h    (POSIX operating system API)
+  - regex.h     (POSIX regex library)
+  - arpa/inet.h (POSIX internet operations)
 
 ### Installation Examples
 
