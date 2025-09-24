@@ -404,7 +404,7 @@ cleanup:
  * @note The returned string must be freed by the caller using free().
  * @note Returns NULL if memory allocation fails.
  */
-char* format_ttl(int ttl, char *proxy) {
+char* format_ttl(int ttl, const char *proxy) {
     if (strcmp(proxy, "true") == 0 || ttl == AUTO_TTL) {
         return AUTO_TTL_KEYWORK;
     } else {
@@ -459,7 +459,7 @@ int update_dns_record(
 
     snprintf(json_data, sizeof(json_data),
              JSON_QUETY_FORMAT,
-             record_type, record_name, current_ip, fomat_ttl(config->ttl, config->proxy), config->proxy);
+             record_type, record_name, current_ip, format_ttl(config->ttl, config->proxy), config->proxy);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
@@ -667,7 +667,8 @@ int main(int argc, char *argv[]) {
     openlog(LOG_ID, LOG_PID | LOG_CONS, LOG_USER);
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
-    Config_t *config = NULL;
+    Config_t *config = malloc(sizeof(Config_t));
+
     
     if (load_config(config) == EXIT_FAILURE)  {
         status = EXIT_FAILURE;

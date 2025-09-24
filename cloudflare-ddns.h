@@ -50,7 +50,7 @@ typedef struct {
           int  ttl;               /**< DNS record TTL (in seconds) */
           int  enable_ipv4;       /**< Enable IPv4 updates (1 = enabled) */
           int  enable_ipv6;       /**< Enable IPv6 updates (1 = enabled) */
-          int  is_enterprise      /**< Set 1 if you are an Enterprise Clouflare Costumer 0 if not */
+          int  is_enterprise;     /**< Set 1 if you are an Enterprise Clouflare Costumer 0 if not */
 } Config_t;
 
 /**
@@ -202,7 +202,7 @@ static int verify_enable_ip(int enable_ip);
  * @param ttl TTL value to validate.
  * @return 1 if the TTL is valid, 0 otherwise.
  */
-static int verify_ttl(int ttl);
+static int verify_ttl(int ttl, int is_enterprise);
 
 /**
  * @brief Verifies the validity of a configuration structure.
