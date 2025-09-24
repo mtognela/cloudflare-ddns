@@ -1,23 +1,27 @@
 #!/usr/bin/env sh
 # Cloudflare Dynamic DNS Updater Configuration
+# Loads secrets from /run/secrets and exports them as environment variables
 
-# Cloudflare authentication
-export CF_AUTH_EMAIL=your-email@example.com
-export CF_AUTH_METHOD=token          # "global" for Global API Key or "token" for Scoped API Token
-export CF_AUTH_KEY=your-api-key-or-token
-export CF_ZONE_ID=your-zone-id
+CF_SECRET_DIR=/run/secrets
 
-# DNS Records
-export CF_RECORD_NAME_IPV4=yourdomain-ipv4.com
-export CF_RECORD_NAME_IPV6=yourdomain-ipv6.com
+# --- Cloudflare authentication ---
+export CF_AUTH_EMAIL="$(cat $CF_SECRET_DIR/CF_AUTH_EMAIL)"
+export CF_AUTH_METHOD="$(cat $CF_SECRET_DIR/CF_AUTH_METHOD)"   # "global" or "token"
+export CF_AUTH_KEY="$(cat $CF_SECRET_DIR/CF_AUTH_KEY)"
+export CF_ZONE_ID="$(cat $CF_SECRET_DIR/CF_ZONE_ID)"
 
-# Record options
-export CF_TTL=3600                   # not proxied from 30s (Enterprise) or 60s (non-Enterprise) to 86400s. proxied only auto (auto equals to 300s)
-export CF_PROXY=false                # "true" to enable Cloudflare proxy, "false" to disable
+# --- DNS Records ---
+export CF_RECORD_NAME_IPV4="$(cat $CF_SECRET_DIR/CF_RECORD_NAME_IPV4)"
+export CF_RECORD_NAME_IPV6="$(cat $CF_SECRET_DIR/CF_RECORD_NAME_IPV6)"
 
-# Feature toggles
-export CF_ENABLE_IPV4=1              # 1 to enable IPv4 updates, 0 to disable
-export CF_ENABLE_IPV6=1              # 1 to enable IPv6 updates, 0 to disable
-export CF_IS_ENTERPRISE=1            # 1 if you are an Cloudflare Enterprise Costumer, 0 if not  
+# --- Record options ---
+export CF_TTL="$(cat $CF_SECRET_DIR/CF_TTL)"                   # 30s–86400s (or auto=300s when proxied)
+export CF_PROXY="$(cat $CF_SECRET_DIR/CF_PROXY)"               # "true" or "false"
 
+# --- Feature toggles ---
+export CF_ENABLE_IPV4="$(cat $CF_SECRET_DIR/CF_ENABLE_IPV4)"   # 1 = enable IPv4 updates
+export CF_ENABLE_IPV6="$(cat $CF_SECRET_DIR/CF_ENABLE_IPV6)"   # 1 = enable IPv6 updates
+export CF_IS_ENTERPRISE="$(cat $CF_SECRET_DIR/CF_IS_ENTERPRISE)" # 1 = Enterprise, 0 = not
+
+# --- Run the updater ---
 exec /usr/local/bin/cloudflare-ddns

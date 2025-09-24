@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  app:
+    image: cloudflare-ddns:latest
+    entrypoint: ["/usr/local/bin/cloudflare-ddns.sh"]
+    secrets:
+      - CF_AUTH_EMAIL
+      - CF_AUTH_METHOD
+      - CF_AUTH_KEY
+      - CF_ZONE_ID
+      - CF_RECORD_NAME_IPV4
+      - CF_RECORD_NAME_IPV6
+      - CF_TTL
+      - CF_PROXY
+      - CF_ENABLE_IPV4
+      - CF_ENABLE_IPV6
+      - CF_IS_ENTERPRISE
+    restart: unless-stopped
+
+secrets:
+  CF_AUTH_EMAIL:
+    external: true
+  CF_AUTH_METHOD:
+    external: true
+  CF_AUTH_KEY:
+    external: true
+  CF_ZONE_ID:
+    external: true
+  CF_RECORD_NAME_IPV4:
+    external: true
+  CF_RECORD_NAME_IPV6:
+    external: true
+  CF_TTL:
+    external: true
+  CF_PROXY:
+    external: true
+  CF_ENABLE_IPV4:
+    external: true
+  CF_ENABLE_IPV6:
+    external: true
+  CF_IS_ENTERPRISE:
+    external: true
