@@ -50,6 +50,7 @@ typedef struct {
           int  ttl;               /**< DNS record TTL (in seconds) */
           int  enable_ipv4;       /**< Enable IPv4 updates (1 = enabled) */
           int  enable_ipv6;       /**< Enable IPv6 updates (1 = enabled) */
+          int  is_enterprise      /**< Set 1 if you are an Enterprise Clouflare Costumer 0 if not */
 } Config_t;
 
 /**

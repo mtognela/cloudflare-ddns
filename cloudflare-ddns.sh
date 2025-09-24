@@ -18,5 +18,6 @@ export CF_PROXY=false                # "true" to enable Cloudflare proxy, "false
 # Feature toggles
 export CF_ENABLE_IPV4=1              # 1 to enable IPv4 updates, 0 to disable
 export CF_ENABLE_IPV6=1              # 1 to enable IPv6 updates, 0 to disable
+export CF_IS_ENTERPRISE=1            # 1 if you are an Cloudflare Enterprise Costumer, 0 if not  
 
 exec /usr/local/bin/cloudflare-ddns

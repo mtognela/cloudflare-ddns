@@ -48,14 +48,16 @@
 #define CLOUDFLARE_API_DNS_RECORD "https://api.cloudflare.com/client/v4/zones/%s/dns_records/%s"
 
 #define JSON_SEARCH_REGEX "\"%s\":\"([^\"]+)\""
-#define JSON_QUETY_FORMAT "{\"type\":\"%s\",\"name\":\"%s\",\"content\":\"%s\",\"ttl\":%d,\"proxied\":%s}"
+#define JSON_QUETY_FORMAT "{\"type\":\"%s\",\"name\":\"%s\",\"content\":\"%s\",\"ttl\":%s,\"proxied\":%s}"
 
 #define LOG_ID "CF-DDNS-U"
 #define USER_AGENT "CF-DDNS-U"
 
-#define MAX_TTL 2147483647
-#define AUTO_TTL 300
-#define MIN_TTL 120
+#define MAX_TTL 86400 /* One day in secornd */
+#define AUTO_TTL 1
+#define AUTO_TTL_KEYWORK "auto"
+#define MIN_TTL_ENTERPRISE 30
+#define MIN_TTL 60
 
 /* 
     IP services to try for IPv4 
@@ -388,6 +390,33 @@ cleanup:
 }
 
 /**
+ * @brief Formats a TTL value as a dynamically allocated string.
+ *
+ * Converts a TTL (Time To Live) value to its string representation.
+ * Returns "auto" for automatic TTL values, otherwise returns the 
+ * numeric value as a string.
+ *
+ * @param ttl The TTL value to format.
+ * @return Pointer to dynamically allocated string containing the 
+ *         formatted TTL. Returns NULL on memory allocation failure.
+ *         Caller is responsible for freeing the returned memory.
+ * 
+ * @note The returned string must be freed by the caller using free().
+ * @note Returns NULL if memory allocation fails.
+ */
+char* format_ttl(int ttl, char *proxy) {
+    if (strcmp(proxy, "true") == 0 || ttl == AUTO_TTL) {
+        return AUTO_TTL_KEYWORK;
+    } else {
+        char *result = malloc(16);  
+        if (result) 
+            snprintf(result, 16, "%d", ttl);
+        
+        return result;
+    }
+}
+
+/**
  * @brief Updates a DNS record in Cloudflare.
  *
  * Sends a PATCH request to update the record with a new IP.
@@ -430,7 +459,7 @@ int update_dns_record(
 
     snprintf(json_data, sizeof(json_data),
              JSON_QUETY_FORMAT,
-             record_type, record_name, current_ip, config->ttl == 1? AUTO_TTL : config->ttl, config->proxy);
+             record_type, record_name, current_ip, fomat_ttl(config->ttl, config->proxy), config->proxy);
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
@@ -489,8 +518,8 @@ static int getenv_int(const char *name, int *out) {
  * @param enable_ip Integer flag representing enable/disable.
  * @return 1 if valid, 0 otherwise.
  */
-static int verify_enable_ip(int enable_ip) {
-    if (enable_ip == 1 || enable_ip == 0) {
+static int verify_1_0(int to_verify) {
+    if (to_verify == 1 || to_verify == 0) {
         return 1;
     }
 
@@ -506,8 +535,11 @@ static int verify_enable_ip(int enable_ip) {
  * @param ttl TTL value to validate.
  * @return 1 if the TTL is valid, 0 otherwise.
  */
-static int verify_ttl(int ttl) {
-    return ttl == 1 || (ttl >= MIN_TTL && ttl <= MAX_TTL);
+static int verify_ttl(int ttl, int is_enteprise) {
+    if (is_enteprise)
+        return ttl == 1 || (ttl >= MIN_TTL_ENTERPRISE && ttl <= MAX_TTL);
+    else
+        return ttl == 1 || (ttl >= MIN_TTL && ttl <= MAX_TTL);
 }
 
 /**
@@ -521,16 +553,17 @@ static int verify_ttl(int ttl) {
  */
 static int verify_Config_t(Config_t *config) {
     if (
-        !config->auth_email                    || 
-        !config->auth_method                   || 
-        !config->auth_key                      || 
-        !config->zone_id                       || 
-        !config->record_name_ipv4              ||                 
-        !config->record_name_ipv6              ||                   
-        !config->proxy                         ||
-        !verify_ttl(config->ttl)               || 
-        !verify_enable_ip(config->enable_ipv4) ||
-        !verify_enable_ip(config->enable_ipv6)) {
+        !config->auth_email                || 
+        !config->auth_method               || 
+        !config->auth_key                  || 
+        !config->zone_id                   || 
+        !config->record_name_ipv4          ||                 
+        !config->record_name_ipv6          ||                   
+        !config->proxy                     ||
+        !verify_1_0(config->is_enterprise) ||
+        !verify_1_0(config->enable_ipv4)   ||
+        !verify_1_0(config->enable_ipv6)   ||
+        !verify_ttl(config->ttl, config->is_enterprise)) {
         log_message(LOG_ERR, "Missing required environment variables! Check your cloudflare-ddns.sh\n");
         return EXIT_FAILURE;
     }
@@ -558,7 +591,8 @@ int load_config(Config_t *config) {
 
     if (!getenv_int("CF_TTL", &config->ttl)                 ||
         !getenv_int("CF_ENABLE_IPV4", &config->enable_ipv4) ||
-        !getenv_int("CF_ENABLE_IPV6", &config->enable_ipv6)) {
+        !getenv_int("CF_ENABLE_IPV6", &config->enable_ipv6) ||
+        !getenv_int("CF_IS_ENTERPRISE", &config->is_enterprise)) {
         log_message(LOG_ERR, "Numeric environment variables missing!\n");
         return EXIT_FAILURE;
     }
