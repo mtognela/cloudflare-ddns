@@ -407,11 +407,18 @@ cleanup:
 char* format_ttl(int ttl, const char *proxy) {
     if (strcmp(proxy, "true") == 0 || ttl == AUTO_TTL) {
         return AUTO_TTL_KEYWORK;
+    } else if ((proxy && strcmp(proxy, "true") == 0) || ttl == AUTO_TTL) {
+        char *result = malloc(strlen(AUTO_TTL_KEYWORK) + 1);
+        if (result) {
+            strcpy(result, AUTO_TTL_KEYWORK);
+        }
+        return result;
     } else {
-        char *result = malloc(16);  
-        if (result) 
+        // Convert numeric TTL to string
+        char *result = malloc(16);  // Enough for typical integer TTL
+        if (result) {
             snprintf(result, 16, "%d", ttl);
-        
+        }
         return result;
     }
 }

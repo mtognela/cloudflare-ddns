@@ -85,20 +85,6 @@ sudo apk add build-base curl-dev
 gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
 ```
 
-## Known Issues & Required Fixes
-
-**The current code has several bugs that must be fixed before use:**
-
-
-3. **Header File Inconsistencies**: The header file function signatures don't match the implementation:
-   - `verify_enable_ip()` should be `verify_1_0()`
-   - `verify_ttl()` signature differs between header and implementation
-   - `format_ttl()` function is missing from header file
-
-4. **Memory Management**: The `format_ttl()` function returns a string literal in some cases but allocated memory in others, which can cause issues with `free()` calls.
-
-**These bugs must be fixed before the program will compile and run correctly.**
-
 ## Configuration
 
 Configuration is handled via environment variables using the wrapper script.
