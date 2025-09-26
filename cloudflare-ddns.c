@@ -16,6 +16,8 @@
     along with this program; if not, see <https://www.gnu.org/licenses/>.
 */
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -102,7 +104,7 @@ static size_t write_callback(
         free(response->data);  
         response->data = NULL;
         response->size = 0;
-        return NULL;
+        return 0;
     }
 
     response->data = ptr;
