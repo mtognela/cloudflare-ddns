@@ -21,6 +21,7 @@
 #include <string.h>
 #include <curl/curl.h>
 #include <arpa/inet.h>
+#include <cjson/cJSON.h>
 #include <regex.h>
 #include <syslog.h>
 #include <unistd.h>
@@ -47,7 +48,6 @@
 #define CLOUDFLARE_API_DNS_QUERY "https://api.cloudflare.com/client/v4/zones/%s/dns_records?type=%s&name=%s"
 #define CLOUDFLARE_API_DNS_RECORD "https://api.cloudflare.com/client/v4/zones/%s/dns_records/%s"
 
-#define JSON_SEARCH_REGEX "\"%s\":\"([^\"]+)\""
 #define JSON_QUETY_FORMAT "{\"type\":\"%s\",\"name\":\"%s\",\"content\":\"%s\",\"ttl\":%s,\"proxied\":%s}"
 
 #define LOG_ID "CF-DDNS-U"
@@ -55,7 +55,7 @@
 
 #define MAX_TTL 86400 /* One day in secornd */
 #define AUTO_TTL 1
-#define AUTO_TTL_KEYWORK "auto"
+#define AUTO_TTL_KEYWORD "1"  /* Cloudflare uses 1 for 'automatic' TTL */
 #define MIN_TTL_ENTERPRISE 30
 #define MIN_TTL 60
 
@@ -99,7 +99,10 @@ static size_t write_callback(
     char *ptr = realloc(response->data, response->size + realsize + 1);
     if (!ptr) {
         log_message(LOG_CRIT, "Not enough memory (realloc returned NULL)");
-        return 0;
+        free(response->data);  
+        response->data = NULL;
+        response->size = 0;
+        return NULL;
     }
 
     response->data = ptr;
@@ -234,45 +237,40 @@ cleanup:
 }
 
 /**
- * @brief Extracts a value from a JSON string by key.
+ * @brief Extracts a string value from a JSON object by key.
  *
- * Uses regex to find the key and returns a heap-allocated copy of the value.
+ * Uses cJSON to parse the JSON string and retrieve the value associated
+ * with the given key. Returns a newly allocated copy of the value.
  *
- * @param json JSON text.
- * @param key Key to search for.
+ * @param json JSON text (null-terminated string).
+ * @param key  Key to search for (case-sensitive).
  * @return Newly allocated string containing the value, or NULL if not found.
  *         Caller must free() the returned string.
  */
-char* extract_json_value(
-    const char *json, 
-    const char *key) {
+char* extract_json_value(const char *json, const char *key) {
+    if (!json || !key) exit(EXIT_FAILURE);
 
-    char search_pattern[H_BFF];
-    snprintf(search_pattern, sizeof(search_pattern), JSON_SEARCH_REGEX, key);
-
-    regex_t regex;
-    regmatch_t matches[2];
     char *result = NULL;
-
-    if (regcomp(&regex, search_pattern, REG_EXTENDED) != 0) {
-        log_message(LOG_ERR, "Could not compile JSON regex.");
+    cJSON *root = cJSON_Parse(json);
+    if (!root) {
+        log_message(LOG_ERR, "Failed to parse JSON response with cJSON.");
         return NULL;
     }
 
-    if (regexec(&regex, json, 2, matches, 0) == 0) {
-        size_t len = matches[1].rm_eo - matches[1].rm_so;
-        /* Register match start offset - Register match end offset */
-        result = malloc(len + 1);
-        if (result) {
-            strncpy(result, json + matches[1].rm_so, len);
-            result[len] = '\0';
+    cJSON *result_array = cJSON_GetObjectItemCaseSensitive(root, "result");
+    if (cJSON_IsArray(result_array)) {
+        cJSON *first = cJSON_GetArrayItem(result_array, 0);
+        if (cJSON_IsObject(first)) {
+            const cJSON *value = cJSON_GetObjectItemCaseSensitive(first, key);
+            if (cJSON_IsString(value) && value->valuestring) {
+                result = strdup(value->valuestring);
+            }
         }
     }
 
-    regfree(&regex);
+    cJSON_Delete(root);
     return result;
 }
-
 
 /**
  * @brief Prepares HTTP headers for Cloudflare API requests.
@@ -389,38 +387,17 @@ cleanup:
     return ret_val;
 }
 
-/**
- * @brief Formats a TTL value as a dynamically allocated string.
- *
- * Converts a TTL (Time To Live) value to its string representation.
- * Returns "auto" for automatic TTL values, otherwise returns the 
- * numeric value as a string.
- *
- * @param ttl The TTL value to format.
- * @return Pointer to dynamically allocated string containing the 
- *         formatted TTL. Returns NULL on memory allocation failure.
- *         Caller is responsible for freeing the returned memory.
- * 
- * @note The returned string must be freed by the caller using free().
- * @note Returns NULL if memory allocation fails.
- */
-char* format_ttl(int ttl, const char *proxy) {
-    if (strcmp(proxy, "true") == 0 || ttl == AUTO_TTL) {
-        return AUTO_TTL_KEYWORK;
-    } else if ((proxy && strcmp(proxy, "true") == 0) || ttl == AUTO_TTL) {
-        char *result = malloc(strlen(AUTO_TTL_KEYWORK) + 1);
-        if (result) {
-            strcpy(result, AUTO_TTL_KEYWORK);
-        }
-        return result;
+/* to document */
+static int format_ttl(int ttl, const char *proxy, char *out, size_t out_size) {
+    if (!out || out_size == 0) return 0;
+    /* If proxied is "true" or TTL is AUTO_TTL use Cloudflare's numeric '1' */
+    if ((proxy && strcmp(proxy, "true") == 0) || ttl == AUTO_TTL) {
+        /* '1' is Cloudflare's auto TTL indicator (numeric) */
+        if (snprintf(out, out_size, "%s", AUTO_TTL_KEYWORD) < 0) return 0;
     } else {
-        // Convert numeric TTL to string
-        char *result = malloc(16);  // Enough for typical integer TTL
-        if (result) {
-            snprintf(result, 16, "%d", ttl);
-        }
-        return result;
+        if (snprintf(out, out_size, "%d", ttl) < 0) return 0;
     }
+    return 1;
 }
 
 /**
@@ -464,9 +441,17 @@ int update_dns_record(
         CLOUDFLARE_API_DNS_RECORD,
         config->zone_id, record_id);
 
+    char ttl_buf[16];
+
+    if (!format_ttl(config->ttl, config->proxy, ttl_buf, sizeof(ttl_buf))) {
+        log_message(LOG_ERR, "Failed to format TTL string.");
+        goto cleanup;
+    }
+
     snprintf(json_data, sizeof(json_data),
-             JSON_QUETY_FORMAT,
-             record_type, record_name, current_ip, format_ttl(config->ttl, config->proxy), config->proxy);
+            JSON_QUETY_FORMAT,
+            record_type, record_name, current_ip, ttl_buf, config->proxy);
+
 
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PATCH");
@@ -571,7 +556,7 @@ static int verify_Config_t(Config_t *config) {
         !verify_1_0(config->enable_ipv4)   ||
         !verify_1_0(config->enable_ipv6)   ||
         !verify_ttl(config->ttl, config->is_enterprise)) {
-        log_message(LOG_ERR, "Missing required environment variables! Check your cloudflare-ddns.sh\n");
+        log_message(LOG_ERR, "Missing required environment variables! Check your cloudflare-ddns.sh");
         return EXIT_FAILURE;
     }
 
@@ -600,7 +585,7 @@ int load_config(Config_t *config) {
         !getenv_int("CF_ENABLE_IPV4", &config->enable_ipv4) ||
         !getenv_int("CF_ENABLE_IPV6", &config->enable_ipv6) ||
         !getenv_int("CF_IS_ENTERPRISE", &config->is_enterprise)) {
-        log_message(LOG_ERR, "Numeric environment variables missing!\n");
+        log_message(LOG_ERR, "Numeric environment variables missing!");
         return EXIT_FAILURE;
     }
 

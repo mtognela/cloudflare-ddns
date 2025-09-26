@@ -110,12 +110,13 @@ static int is_valid_ipv6(const char *ip);
 int get_current_ip(char *ip_buffer, size_t buffer_size, const char* const ip_services[], int ip_type);
 
 /**
- * @brief Extracts a value from a JSON string by key.
+ * @brief Extracts a string value from a JSON object by key.
  *
- * Uses regex to find the key and returns a heap-allocated copy of the value.
+ * Uses cJSON to parse the JSON string and retrieve the value associated
+ * with the given key. Returns a newly allocated copy of the value.
  *
- * @param json JSON text.
- * @param key Key to search for.
+ * @param json JSON text (null-terminated string).
+ * @param key  Key to search for (case-sensitive).
  * @return Newly allocated string containing the value, or NULL if not found.
  *         Caller must free() the returned string.
  */
@@ -151,6 +152,9 @@ int get_dns_record(
     const char *record_name, 
     const char *record_type,
     const Config_t *config);
+
+/* to document */
+static int format_ttl(int ttl, const char *proxy, char *out, size_t out_size);
 
 /**
  * @brief Updates a DNS record in Cloudflare.
@@ -214,7 +218,6 @@ static int verify_ttl(int ttl, int is_enterprise);
  * @return EXIT_SUCCESS if configuration is valid, EXIT_FAILURE otherwise.
  */
 static int verify_Config_t(Config_t *config);
-
 
 /**
  * @brief Loads configuration from environment variables.

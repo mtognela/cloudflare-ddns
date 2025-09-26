@@ -1,5 +1,5 @@
 CC = zig cc
-LDFLAGS = -lcurl
+LDFLAGS = -lcurl -lcjson
 TARGET = cloudflare-ddns.out
 SRC = cloudflare-ddns.c 
 
@@ -8,7 +8,7 @@ SRC = cloudflare-ddns.c
 build: $(TARGET)
 
 $(TARGET): $(SRC) 
-	$(CC) -o $(TARGET) $(SRC) $(LDFLAGS)
+	$(CC)  -o $(TARGET) $(SRC) $(LDFLAGS)
 
 clean:
 	rm -f $(TARGET)
