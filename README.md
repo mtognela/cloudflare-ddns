@@ -11,7 +11,7 @@ A lightweight C program that automatically updates your Cloudflare DNS records w
 - **Robust IP validation** - Uses `inet_pton()` for strict IPv4/IPv6 address validation
 - **Intelligent updates** - Only updates DNS records when IP addresses actually change
 - **Minimal resource usage** - Written in C with efficient memory management
-- **JSON parsing** - Custom regex-based JSON extraction without heavy dependencies
+- **JSON parsing** - Uses `cJSON` for strict parsing
 - **Easy deployment** - Simple configuration via environment variables, perfect for crontab integration
 - **Error resilience** - Graceful handling of network failures and API errors
 - **Configurable parameters** - TTL, proxy settings, and record names easily customizable
@@ -24,105 +24,130 @@ This program requires the following libraries and development headers:
 
 - **libcurl** - HTTP client library for making API requests to Cloudflare
 
+- **cJSON**  - Ultralightweight JSON parser in ANSI C 
+
 - **Standard C library** - Core system functions including:
   - stdio.h     (ISO C standard input/output operations)
   - stdlib.h    (ISO C memory management, process control)
   - string.h    (ISO C string manipulation functions)
   - syslog.h    (POSIX system error logging)
   - unistd.h    (POSIX operating system API)
-  - regex.h     (POSIX regex library)
   - arpa/inet.h (POSIX internet operations)
 
 ### Installation Examples
 
 **Debian/Ubuntu:**
-```sh
+```bash
 sudo apt-get install libcurl4-openssl-dev build-essential
 ```
 
 **RHEL/CentOS/Fedora:**
-```sh
+```bash
 sudo yum install libcurl-devel gcc make
 # or on newer versions:
 sudo dnf install libcurl-devel gcc make
 ```
 
 **Alpine Linux:**
-```sh
+```bash
 apk add curl-dev build-base
 ```
 
 ## Build Instructions
 
 ### Ubuntu/Debian
-```sh
+```bash
 # Install dependencies
 sudo apt update
-sudo apt install build-essential libcurl4-openssl-dev
+sudo apt install build-essential libcurl4-openssl-dev cjson
 
 # Clone or download the source code
 # Compile the program
-gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
+gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl -lcjson
 ```
 
 ### CentOS/RHEL/Fedora
-```sh
+```bash
 # Install dependencies
-sudo yum install gcc make libcurl-devel
+sudo yum install gcc make libcurl-devel cjson
 # OR for newer versions:
-sudo dnf install gcc make libcurl-devel
+sudo dnf install gcc make libcurl-devel cjson 
 
 # Compile the program
-gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
+gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl -lcjson
 ```
 
 ### Alpine Linux
-```sh
+```bash
 # Install dependencies
-sudo apk add build-base curl-dev
+sudo apk add build-base curl-dev cjson
 
 # Compile the program
-gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl
+gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl -lcjson
 ```
 
-## Configuration
+## Configuration 
 
-Configuration is handled via environment variables using the wrapper script.
+### Docker Script
 
-Example wrapper script (`cloudflare-ddns.sh`):
+For better security you can use `docker secret` via my **secret scripts**
 
-```sh
+Example wrapper script (`secret/secret.sh`):
+
+```bash
 #!/usr/bin/env sh
-# Cloudflare Dynamic DNS Updater Configuration
 
-# Cloudflare authentication
-export CF_AUTH_EMAIL=your-email@example.com
-export CF_AUTH_METHOD=token          # "global" for Global API Key or "token" for Scoped API Token
-export CF_AUTH_KEY=your-api-key-or-token
-export CF_ZONE_ID=your-zone-id
+alias dsc='docker secret create'
 
-# DNS Records
-export CF_RECORD_NAME_IPV4=yourdomain-ipv4.com
-export CF_RECORD_NAME_IPV6=yourdomain-ipv6.com
+echo "your-email@example.com" | dsc CF_AUTH_EMAIL -
+echo "token" | dsc CF_AUTH_METHOD -  # "global" for Global API Key or "token" for Scoped API Token
+echo "your-api-key-or-token" | dsc CF_AUTH_KEY -
+echo "your-zone-id" | dsc CF_ZONE_ID -
 
-# Record options
-export CF_TTL=3600                   # not proxied: 30s (Enterprise) or 60s (non-Enterprise) to 86400s. proxied: only auto (equals 300s)
-export CF_PROXY=false                # "true" to enable Cloudflare proxy, "false" to disable
+echo "yourdomain-ipv4.com" | dsc CF_RECORD_NAME_IPV4 - 
+echo "yourdomain-ipv6.com" | dsc CF_RECORD_NAME_IPV6 - 
+
+echo 3600 | dsc CF_TTL - # not proxied from 30s (Enterprise) or 60s (non-Enterprise) to 86400s. proxied only auto (auto equals to 300s)
+echo "false" | dsc CF_PROXY - # "true" to enable Cloudflare proxy, "false" to disable
+
+echo 1 | dsc CF_ENABLE_IPV4 - # 1 to enable IPv4 updates, 0 to disable
+echo 1 | dsc CF_ENABLE_IPV6 - # 1 to enable IPv6 updates, 0 to disable
+echo 1 | dsc CF_IS_ENTERPRISE - # 1 if you are an Cloudflare Enterprise Costumer, 0 if not
+```
+Example wrapper script (`secret/secret.ps1`):
+
+```ps1
+Set-Alias dsc "docker secret create"
+
+# Cloudflare credentials
+"your-email@example.com"    | dsc CF_AUTH_EMAIL -
+"token"                     | dsc CF_AUTH_METHOD -  # "global" for Global API Key or "token" for Scoped API Token
+"your-api-key-or-token"     | dsc CF_AUTH_KEY -
+"your-zone-id"              | dsc CF_ZONE_ID -
+
+# DNS record names
+"yourdomain-ipv4.com"       | dsc CF_RECORD_NAME_IPV4 -
+"yourdomain-ipv6.com"       | dsc CF_RECORD_NAME_IPV6 -
+
+# TTL & Proxy settings
+"3600"                      | dsc CF_TTL -        # TTL in seconds
+"false"                     | dsc CF_PROXY -      # "true" to enable Cloudflare proxy, "false" to disable
 
 # Feature toggles
-export CF_ENABLE_IPV4=1              # 1 to enable IPv4 updates, 0 to disable
-export CF_ENABLE_IPV6=1              # 1 to enable IPv6 updates, 0 to disable
-export CF_IS_ENTERPRISE=0            # 1 if you are a Cloudflare Enterprise Customer, 0 if not  
-
-exec /usr/local/bin/cloudflare-ddns
+"1"                         | dsc CF_ENABLE_IPV4 - # 1 to enable IPv4 updates, 0 to disable
+"1"                         | dsc CF_ENABLE_IPV6 - # 1 to enable IPv6 updates, 0 to disable
+"1"                         | dsc CF_IS_ENTERPRISE - # 1 if you are an Enterprise customer, 0 otherwise
+```
+#### How to run the secret script 
+If you are on a un*x system: 
+```bash 
+sudo sh secret/secret.sh 
+```
+Or on Windows with PowerShell as Administrator:
+```ps1
+.\secret\secret.ps1
 ```
 
-Make the script executable:
-
-```sh
-chmod +x cloudflare-ddns.sh
-./cloudflare-ddns.sh
-```
 
 ### TTL Configuration Notes
 
@@ -157,32 +182,32 @@ chmod +x cloudflare-ddns.sh
 ## Installation
 
 1. After compilation (and fixing the bugs), copy the binary to a system location:
-```sh
+```bash
 sudo cp cloudflare-ddns /usr/local/bin/
 sudo cp cloudflare-ddns.sh /usr/local/bin/
 sudo chmod +x /usr/local/bin/cloudflare-ddns
 sudo chmod +x /usr/local/bin/cloudflare-ddns.sh
 ```
 
-2. Test the program manually (after fixing the bugs):
-```sh
+2. Test the program manually:
+```bash
 /usr/local/bin/cloudflare-ddns.sh
 ```
 
-## Docker
+## Docker Deploying
 
-You can run the Cloudflare DDNS Updater in a lightweight Docker container using a multi-stage build. **Note: The code bugs must be fixed before building the Docker image.**
+You can run the Cloudflare DDNS Updater in a lightweight Docker container using a multi-stage build. 
 
 ### Build & Run
 
 #### 1. Build the Docker image
 
-```sh
+```bash
 docker build -t cloudflare-ddns .
 ```
 #### 2. Run the container with the wrapper script 
 
-```sh
+```bash
 docker run -d \
   --name cloudflare-ddns \
   cloudflare-ddns
@@ -190,7 +215,7 @@ docker run -d \
 
 #### 3. Run the container with environment variables
 
-```sh
+```bash
 docker run -d \
   --name cloudflare-ddns \
   -e CF_AUTH_EMAIL=your-email@example.com \
@@ -206,11 +231,17 @@ docker run -d \
   -e CF_IS_ENTERPRISE=0 \
   cloudflare-ddns
 ```
+### Docker Compose 
+
+For docker compose run: 
+```bash
+docker compose up -d
+```
 
 ### Dockerfile Overview
 
 * **Build stage**: Uses Alpine Linux to compile the DDNS updater with libcurl.
-* **Runtime stage**: Uses a minimal Alpine image with only `libcurl` and `ca-certificates` for HTTPS support.
+* **Runtime stage**: Uses a minimal Alpine image with only `libcurl` and `ca-certificates` for HTTPS support and `cjson` for json parsing .
 * The binary is stripped and copied to the runtime image for a small footprint (~7-8 MB).
 * Runs as a **non-root user** for security.
 
@@ -249,29 +280,29 @@ All DDNS updates and errors will be visible in real-time.
 To automatically update your DNS records at regular intervals, set up a cron job:
 
 1. Open the crontab editor:
-```sh
+```bash
 crontab -e
 ```
 
 2. Add one of the following lines based on your preferred update frequency:
 
 ### Every 5 minutes (recommended for dynamic IPs)
-```sh
+```bash
 */5 * * * * /usr/local/bin/cloudflare-ddns.sh >/dev/null 2>&1
 ```
 
 ### Every 15 minutes
-```sh
+```bash
 */15 * * * * /usr/local/bin/cloudflare-ddns.sh >/dev/null 2>&1
 ```
 
 ### Every hour
-```sh
+```bash
 0 * * * * /usr/local/bin/cloudflare-ddns.sh >/dev/null 2>&1
 ```
 
 ### Every 6 hours
-```sh
+```bash
 0 */6 * * * /usr/local/bin/cloudflare-ddns.sh >/dev/null 2>&1
 ```
 
@@ -282,17 +313,17 @@ crontab -e
 The program logs to syslog with the identifier "CF-DDNS-U". To view the logs:
 
 ### View recent logs
-```sh
+```bash
 tail -f /var/log/syslog | grep "CF-DDNS-U"
 ```
 
 ### View all DDNS logs
-```sh
+```bash
 journalctl -t "CF-DDNS-U"
 ```
 
 ### On systems using rsyslog, you can also check
-```sh
+```bash
 grep "CF-DDNS-U" /var/log/messages
 ```
 
@@ -334,12 +365,12 @@ grep "CF-DDNS-U" /var/log/messages
 ### Manual Testing
 
 Run the wrapper script manually to see detailed output:
-```sh
+```bash
 ./cloudflare-ddns.sh
 ```
 
 For more verbose debugging, check the syslog in real-time while running the program:
-```sh
+```bash
 tail -f /var/log/syslog | grep "CF-DDNS-U" &
 ./cloudflare-ddns.sh
 ```

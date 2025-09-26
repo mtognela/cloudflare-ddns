@@ -24,7 +24,6 @@
 #include <curl/curl.h>
 #include <arpa/inet.h>
 #include <cjson/cJSON.h>
-#include <regex.h>
 #include <syslog.h>
 #include <unistd.h>
 #include "cloudflare-ddns.h"

@@ -305,8 +305,8 @@ attach them to the start of each source file to most effectively
 convey the exclusion of warranty; and each file should have at least
 the "copyright" line and a pointer to where the full notice is found.
 
-    Cloudflare Dynamic DNS Updater
-    Copyright (C) 2025  Mattia Tognela
+    one line to give the program's name and an idea of what it does.
+    Copyright (C) yyyy  name of author
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -320,6 +320,7 @@ the "copyright" line and a pointer to where the full notice is found.
 
     You should have received a copy of the GNU General Public License
     along with this program; if not, see <https://www.gnu.org/licenses/>.
+
 
 Also add information on how to contact you by electronic and paper
 mail.
