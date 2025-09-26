@@ -139,7 +139,7 @@ Set-Alias dsc "docker secret create"
 "1"                         | dsc CF_IS_ENTERPRISE - # 1 if you are an Enterprise customer, 0 otherwise
 ```
 #### How to run the secret script 
-If you are on a un*x system: 
+If you are on a Un*x system: 
 ```bash 
 sudo sh secret/secret.sh 
 ```
@@ -184,14 +184,13 @@ Or on Windows with PowerShell as Administrator:
 1. After compilation (and fixing the bugs), copy the binary to a system location:
 ```bash
 sudo cp cloudflare-ddns /usr/local/bin/
-sudo cp cloudflare-ddns.sh /usr/local/bin/
 sudo chmod +x /usr/local/bin/cloudflare-ddns
-sudo chmod +x /usr/local/bin/cloudflare-ddns.sh
 ```
 
 2. Test the program manually:
 ```bash
-/usr/local/bin/cloudflare-ddns.sh
+# Load all ENV var 
+exec /usr/local/bin/cloudflare-ddns
 ```
 
 ## Docker Deploying
@@ -205,32 +204,7 @@ You can run the Cloudflare DDNS Updater in a lightweight Docker container using 
 ```bash
 docker build -t cloudflare-ddns .
 ```
-#### 2. Run the container with the wrapper script 
 
-```bash
-docker run -d \
-  --name cloudflare-ddns \
-  cloudflare-ddns
-```
-
-#### 3. Run the container with environment variables
-
-```bash
-docker run -d \
-  --name cloudflare-ddns \
-  -e CF_AUTH_EMAIL=your-email@example.com \
-  -e CF_AUTH_METHOD=token \
-  -e CF_AUTH_KEY=your-api-token \
-  -e CF_ZONE_ID=your-zone-id \
-  -e CF_RECORD_NAME_IPV4=yourdomain.com \
-  -e CF_RECORD_NAME_IPV6=yourdomain.com \
-  -e CF_TTL=3600 \
-  -e CF_PROXY=false \
-  -e CF_ENABLE_IPV4=1 \
-  -e CF_ENABLE_IPV6=0 \
-  -e CF_IS_ENTERPRISE=0 \
-  cloudflare-ddns
-```
 ### Docker Compose 
 
 For docker compose run: 
@@ -361,27 +335,6 @@ grep "CF-DDNS-U" /var/log/messages
 6. **TTL validation errors**
    - Ensure TTL is within valid range (60-86400 for non-proxied, 30-86400 for Enterprise)
    - Use CF_TTL=1 for automatic TTL
-
-### Manual Testing
-
-Run the wrapper script manually to see detailed output:
-```bash
-./cloudflare-ddns.sh
-```
-
-For more verbose debugging, check the syslog in real-time while running the program:
-```bash
-tail -f /var/log/syslog | grep "CF-DDNS-U" &
-./cloudflare-ddns.sh
-```
-
-## Security Considerations
-
-* Protect your wrapper script containing secrets (consider using file permissions 700)
-* Prefer API Tokens over Global API Keys (more restrictive permissions)
-* Regularly rotate credentials
-* Run with least privilege (non-root user when possible)
-* Store sensitive configuration outside of version control
 
 ## License
 
