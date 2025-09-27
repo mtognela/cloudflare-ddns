@@ -53,7 +53,7 @@ This program requires the following libraries and development headers:
 sudo apt-get install libcurl4-openssl-dev build-essential libcjson-dev
 ```
 
-**Fedora Linux **
+**Fedora Linux:**
 ```bash
 sudo dnf install libcurl-devel gcc make cjson
 ```
