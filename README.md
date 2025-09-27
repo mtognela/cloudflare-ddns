@@ -21,11 +21,11 @@ The program follows suckless philosophy with a single-purpose design, minimal de
 ## Get The Source
 
 ### Clone The Repo
-Clone with https:
+Clone with `https`:
 ```bash
 git clone https://github.com/mtognela/cloudflare-ddns.git
 ```
-Or clone with ssh:
+Or clone with `ssh`:
 ```bash
 git clone git@github.com:mtognela/cloudflare-ddns.git
 ```
