@@ -18,9 +18,8 @@ A lightweight C program that automatically updates your Cloudflare DNS records w
 
 The program follows suckless philosophy with a single-purpose design, minimal dependencies, and straightforward configuration through environment variables.
 
-## Get The Source
 
-### Clone The Repo
+## Clone The Repo
 Clone with `https`:
 ```bash
 git clone https://github.com/mtognela/cloudflare-ddns.git
