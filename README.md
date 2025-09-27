@@ -18,13 +18,25 @@ A lightweight C program that automatically updates your Cloudflare DNS records w
 
 The program follows suckless philosophy with a single-purpose design, minimal dependencies, and straightforward configuration through environment variables.
 
+## Get The Source
+
+### Clone The Repo
+Clone with https:
+```bash
+git clone https://github.com/mtognela/cloudflare-ddns.git
+```
+Or clone with ssh:
+```bash
+git clone git@github.com:mtognela/cloudflare-ddns.git
+```
+
 ## Dependencies
 
 This program requires the following libraries and development headers:
 
 - **libcurl** - HTTP client library for making API requests to Cloudflare
 
-- **cJSON**  - Ultralightweight JSON parser in ANSI C 
+- **cJSON**  - Ultralightweight JSON parser in ISO C 
 
 - **Standard C library** - Core system functions including:
   - stdio.h     (ISO C standard input/output operations)
@@ -34,61 +46,50 @@ This program requires the following libraries and development headers:
   - unistd.h    (POSIX operating system API)
   - arpa/inet.h (POSIX internet operations)
 
-### Installation Examples
+### Installation of  Dependecies
 
 **Debian/Ubuntu:**
 ```bash
-sudo apt-get install libcurl4-openssl-dev build-essential
+sudo apt-get install libcurl4-openssl-dev build-essential libcjson-dev
 ```
 
-**RHEL/CentOS/Fedora:**
+**Fedora Linux **
 ```bash
-sudo yum install libcurl-devel gcc make
-# or on newer versions:
-sudo dnf install libcurl-devel gcc make
+sudo dnf install libcurl-devel gcc make cjson
 ```
 
 **Alpine Linux:**
 ```bash
-apk add curl-dev build-base
+apk add curl-dev build-base cjson-dev
 ```
 
-## Build Instructions
-
-### Ubuntu/Debian
+**Arch Linux:**
 ```bash
-# Install dependencies
-sudo apt update
-sudo apt install build-essential libcurl4-openssl-dev cjson
+pacman -S curl gcc cjson
+``` 
 
-# Clone or download the source code
-# Compile the program
+## Build
+
+```bash
 gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl -lcjson
 ```
-
-### CentOS/RHEL/Fedora
-```bash
-# Install dependencies
-sudo yum install gcc make libcurl-devel cjson
-# OR for newer versions:
-sudo dnf install gcc make libcurl-devel cjson 
-
-# Compile the program
-gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl -lcjson
-```
-
-### Alpine Linux
-```bash
-# Install dependencies
-sudo apk add build-base curl-dev cjson
-
-# Compile the program
-gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl -lcjson
-```
-
 ## Configuration 
 
-### Docker Script
+### Via env variables 
+
+- `CF_AUTH_EMAIL` "your-email@example.com"
+- `CF_AUTH_METHOD` "global" for Global API Key or "token" for Scoped API Token
+- `CF_AUTH_KEY` "your-api-key-or-token"
+- `CF_ZONE_ID` "your-zone-id"
+- `CF_RECORD_NAME_IPV4` "yourdomain-ipv4.com"
+- `CF_RECORD_NAME_IPV6` "yourdomain-ipv6.com"
+- `CF_TTL` not proxied from 30s (Enterprise) or 60s (non-Enterprise) to 86400s. proxied only auto (auto equals to 300s)
+- `CF_PROXY` "true" to enable Cloudflare proxy, "false" to disable
+- `CF_ENABLE_IPV4` 1 to enable IPv4 updates, 0 to disable
+- `CF_ENABLE_IPV6` 1 to enable IPv6 updates, 0 to disable
+- `CF_IS_ENTERPRISE` 1 if you are an Cloudflare Enterprise Costumer, 0 if not
+
+### Docker Secret 
 
 For better security you can use `docker secret` via my **secret scripts**
 
@@ -181,7 +182,6 @@ Or on Windows with PowerShell as Administrator:
 
 ## Installation
 
-1. After compilation (and fixing the bugs), copy the binary to a system location:
 ```bash
 sudo cp cloudflare-ddns /usr/local/bin/
 sudo chmod +x /usr/local/bin/cloudflare-ddns
@@ -189,27 +189,61 @@ sudo chmod +x /usr/local/bin/cloudflare-ddns
 
 2. Test the program manually:
 ```bash
-# Load all ENV var 
+# Load all env var 
 exec /usr/local/bin/cloudflare-ddns
 ```
 
-## Docker Deploying
+Here’s an improved and more complete version of your **Docker Deploying** section, with clearer instructions and added details:
 
-You can run the Cloudflare DDNS Updater in a lightweight Docker container using a multi-stage build. 
+---
 
-### Build & Run
+## Docker Deployment
+
+You can run the **Cloudflare DDNS Updater** inside a lightweight Docker container using a multi-stage build for efficiency.
+
+### Build & Run with Docker
 
 #### 1. Build the Docker image
+
+Run the following command inside the project directory (where the `Dockerfile` is located):
 
 ```bash
 docker build -t cloudflare-ddns .
 ```
 
-### Docker Compose 
+#### 2. Run the container
 
-For docker compose run: 
+After building the image, start a container:
+
+```bash
+docker run -d \
+  --name cloudflare-ddns \
+  -e CF_AUTH_EMAIL=your-email@example.com \
+  -e CF_AUTH_METHOD=token \
+  -e CF_AUTH_KEY=your-api-key-or-token \
+  -e CF_ZONE_ID=your-zone-id \
+  -e CF_RECORD_NAME_IPV4=yourdomain-ipv4.com \
+  -e CF_RECORD_NAME_IPV6=yourdomain-ipv6.com \
+  -e CF_TTL=1 \
+  -e CF_PROXY=true \
+  -e CF_ENABLE_IPV4=1 \
+  -e CF_ENABLE_IPV6=1 \
+  -e CF_IS_ENTERPRISE=0 \
+  cloudflare-ddns
+```
+
+### Deploy with Docker Compose
+
+#### Run the service
+
 ```bash
 docker compose up -d
+```
+
+#### Stop the service
+
+```bash
+docker compose down
 ```
 
 ### Dockerfile Overview
