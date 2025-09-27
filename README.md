@@ -83,7 +83,7 @@ gcc -o cloudflare-ddns cloudflare-ddns.c -lcurl -lcjson
 - `CF_ZONE_ID` "your-zone-id"
 - `CF_RECORD_NAME_IPV4` "yourdomain-ipv4.com"
 - `CF_RECORD_NAME_IPV6` "yourdomain-ipv6.com"
-- `CF_TTL` not 60-86400 for non-proxied, 30-86400 for Enterprise. proxied only auto (auto equals to 300s)
+- `CF_TTL` not 60-86400 for non-proxied, 30-86400 for Enterprise. proxied only auto.
 - `CF_PROXY` "true" to enable Cloudflare proxy, "false" to disable
 - `CF_ENABLE_IPV4` 1 to enable IPv4 updates, 0 to disable
 - `CF_ENABLE_IPV6` 1 to enable IPv6 updates, 0 to disable
