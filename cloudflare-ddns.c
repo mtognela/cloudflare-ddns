@@ -58,7 +58,7 @@
 #define AUTO_TTL 1
 #define AUTO_TTL_KEYWORD "1"  /* Cloudflare uses 1 for 'automatic' TTL */
 #define MIN_TTL_ENTERPRISE 30
-#define MIN_TTL 60
+#define MIN_TTL 60 
 
 /* 
     IP services to try for IPv4 
@@ -121,7 +121,7 @@ static size_t write_callback(
  * @param priority Syslog priority (LOG_INFO, LOG_WARNING, LOG_ERR, etc.).
  * @param message Null-terminated string to log.
  */
-static void log_message(
+static inline void log_message(
     int priority, 
     const char *message) {
     syslog(priority, "%s", message);
@@ -138,7 +138,7 @@ static void log_message(
  * @param ip IPv6 string.
  * @return 1 if valid, 0 otherwise.
  */
-static int is_valid_ipv4(const char *ip) {
+static inline int is_valid_ipv4(const char *ip) {
     struct in_addr ipv4_addr;
 
     if (inet_pton(AF_INET, ip, &ipv4_addr)) {
@@ -155,7 +155,7 @@ static int is_valid_ipv4(const char *ip) {
  * @param ip IPv6 string.
  * @return 1 if valid, 0 otherwise.
  */
-static int is_valid_ipv6(const char *ip) {
+static inline int is_valid_ipv6(const char *ip) {
     struct in6_addr ipv6_addr;
 
     if (inet_pton(AF_INET6, ip, &ipv6_addr)) {
@@ -388,7 +388,7 @@ cleanup:
     return ret_val;
 }
 
-/* to document */
+/**  to document */
 static int format_ttl(int ttl, const char *proxy, char *out, size_t out_size) {
     if (!out || out_size == 0) return 0;
     /* If proxied is "true" or TTL is AUTO_TTL use Cloudflare's numeric '1' */
@@ -495,7 +495,7 @@ cleanup:
  * @param out Pointer to store the converted integer value.
  * @return 1 if the variable exists and conversion succeeds, 0 otherwise.
  */
-static int getenv_int(const char *name, int *out) {
+static inline int getenv_int(const char *name, int *out) {
     char *val = getenv(name);
     if (!val) return 0;  
 
@@ -511,7 +511,7 @@ static int getenv_int(const char *name, int *out) {
  * @param enable_ip Integer flag representing enable/disable.
  * @return 1 if valid, 0 otherwise.
  */
-static int verify_1_0(int to_verify) {
+static inline int verify_boolean(int to_verify) {
     if (to_verify == 1 || to_verify == 0) {
         return 1;
     }
@@ -528,7 +528,7 @@ static int verify_1_0(int to_verify) {
  * @param ttl TTL value to validate.
  * @return 1 if the TTL is valid, 0 otherwise.
  */
-static int verify_ttl(int ttl, int is_enteprise) {
+static inline int verify_ttl(int ttl, int is_enteprise) {
     if (is_enteprise)
         return ttl == 1 || (ttl >= MIN_TTL_ENTERPRISE && ttl <= MAX_TTL);
     else
@@ -553,9 +553,9 @@ static int verify_Config_t(Config_t *config) {
         !config->record_name_ipv4          ||                 
         !config->record_name_ipv6          ||                   
         !config->proxy                     ||
-        !verify_1_0(config->is_enterprise) ||
-        !verify_1_0(config->enable_ipv4)   ||
-        !verify_1_0(config->enable_ipv6)   ||
+        !verify_boolean(config->is_enterprise) ||
+        !verify_boolean(config->enable_ipv4)   ||
+        !verify_boolean(config->enable_ipv6)   ||
         !verify_ttl(config->ttl, config->is_enterprise)) {
         log_message(LOG_ERR, "Missing required environment variables! Check your cloudflare-ddns.sh");
         return EXIT_FAILURE;
@@ -660,7 +660,7 @@ int main(int argc, char *argv[]) {
     openlog(LOG_ID, LOG_PID | LOG_CONS, LOG_USER);
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
-    Config_t *config = malloc(sizeof(Config_t));
+    Config_t *config = new_Config_t();
 
     
     if (load_config(config) == EXIT_FAILURE)  {

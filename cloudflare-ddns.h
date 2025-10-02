@@ -53,6 +53,11 @@ typedef struct {
           int  is_enterprise;     /**< Set 1 if you are an Enterprise Clouflare Costumer 0 if not */
 } Config_t;
 
+static inline Config_t* new_Config_t() {
+    Config_t *config = calloc(1, sizeof(Config_t));
+    return config;
+}
+
 /**
  * @brief libcurl write callback.
  *
